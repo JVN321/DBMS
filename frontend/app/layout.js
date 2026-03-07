@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "CryptoSentinel — Blockchain Fraud Detection",
+  title: "DBMS — Distributed Blockchain Monitoring System",
   description:
     "Detect money laundering and fraud patterns in blockchain transactions using graph analysis",
 };

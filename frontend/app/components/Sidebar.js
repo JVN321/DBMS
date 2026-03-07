@@ -47,9 +47,9 @@ export default function Sidebar() {
           </div>
           <div>
             <h1 className="text-sm font-bold tracking-tight text-foreground">
-              CryptoSentinel
+              DBMS
             </h1>
-            <p className="text-[10px] text-muted">Fraud Detection</p>
+            <p className="text-[10px] text-muted">Distributed Blockchain Monitoring</p>
           </div>
         </div>
 

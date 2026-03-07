@@ -1,7 +1,7 @@
 import UploadForm from "../components/UploadForm";
 
 export const metadata = {
-  title: "Upload Transactions — CryptoSentinel",
+  title: "Upload Transactions — DBMS",
 };
 
 export default function UploadPage() {

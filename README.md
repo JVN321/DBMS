@@ -1,6 +1,6 @@
-# CryptoSentinel — Blockchain Fraud Detection
+# DBMS — Distributed Blockchain Monitoring System
 
-Graph-based money laundering and fraud detection platform built with **Next.js**, **Fastify**, **Neo4j**, and **Cytoscape.js**.
+Graph-based blockchain transaction monitoring and fraud detection platform built with **Next.js**, **Fastify**, **Neo4j**, and **Cytoscape.js**.
 
 ## Project Structure
 
