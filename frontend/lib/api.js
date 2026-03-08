@@ -146,10 +146,14 @@ export async function getTransactionPath(from, to) {
   return cached(key, () => request(`/transactions/path?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`), 30 * 1000);
 }
 
-export async function getGraph({ limit = 200, coinType, address } = {}) {
+export async function getGraph({ limit = 200, coinType, address, addresses } = {}) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (coinType) params.set('coin_type', coinType);
-  if (address) params.set('address', address);
+  if (addresses && addresses.length > 0) {
+    params.set('addresses', addresses.join(','));
+  } else if (address) {
+    params.set('address', address);
+  }
   const qs = params.toString();
   return cached(`graph:${qs}`, () => request(`/graph?${qs}`), TTL_GRAPH);
 }

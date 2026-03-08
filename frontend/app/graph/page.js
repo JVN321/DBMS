@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Filter, Route, AlertCircle, Box, Grid2x2, Palette, Timer, Crosshair, Zap, Settings } from "lucide-react";
 import GraphViewer from "../components/GraphViewer";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { getGraph, getTransactionPath } from "@/lib/api";
+import { useAuth } from "@/lib/authContext";
 
 // Dynamic import for 3D viewer (not SSR-compatible due to WebGL/Three.js)
 const GraphViewer3D = dynamic(() => import("../components/GraphViewer3D"), {
@@ -20,6 +21,8 @@ const GraphViewer3D = dynamic(() => import("../components/GraphViewer3D"), {
 
 export default function GraphExplorerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
   const [elements, setElements] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,7 +35,12 @@ export default function GraphExplorerPage() {
   // Filters
   const [nodeLimit, setNodeLimit] = useState(200);
   const [coinFilter, setCoinFilter] = useState("");
-  const [centerAddress, setCenterAddress] = useState("");
+  // Multi-wallet: array of wallet addresses to center the graph on
+  const [centerAddresses, setCenterAddresses] = useState(() => {
+    const a = searchParams?.get('address');
+    return a ? [a] : [];
+  });
+  const [addressInput, setAddressInput] = useState("");
   const [volumeThreshold, setVolumeThreshold] = useState(0);
   const [colorMode, setColorMode] = useState("risk"); // "risk" | "cluster"
   const [animateTime, setAnimateTime] = useState(false);
@@ -47,6 +55,24 @@ export default function GraphExplorerPage() {
     orbitSpeed: 0.0008,
   });
 
+  // URL-derived focus node (camera flies to this address on load)
+  const focusNodeId = searchParams?.get('address') || null;
+
+  // Load persisted viz settings for this user
+  useEffect(() => {
+    if (!user?.username) return;
+    try {
+      const saved = localStorage.getItem(`viz_settings_${user.username}`);
+      if (saved) setVizSettings(JSON.parse(saved));
+    } catch {}
+  }, [user?.username]);
+
+  // Save viz settings whenever they change
+  useEffect(() => {
+    if (!user?.username) return;
+    localStorage.setItem(`viz_settings_${user.username}`, JSON.stringify(vizSettings));
+  }, [vizSettings, user?.username]);
+
   // Path finder
   const [pathFrom, setPathFrom] = useState("");
   const [pathTo, setPathTo] = useState("");
@@ -60,7 +86,7 @@ export default function GraphExplorerPage() {
       const data = await getGraph({
         limit: nodeLimit,
         coinType: coinFilter || undefined,
-        address: centerAddress || undefined,
+        addresses: centerAddresses.length > 0 ? centerAddresses : undefined,
       });
       setElements(data.elements);
       setGraphInfo(data);
@@ -69,7 +95,7 @@ export default function GraphExplorerPage() {
     } finally {
       setLoading(false);
     }
-  }, [nodeLimit, coinFilter, centerAddress]);
+  }, [nodeLimit, coinFilter, centerAddresses]);
 
   useEffect(() => {
     fetchGraph();
@@ -148,13 +174,44 @@ export default function GraphExplorerPage() {
               onChange={(e) => setCoinFilter(e.target.value.toUpperCase())}
               className="w-28 rounded border border-card-border bg-background px-2 py-1 text-xs focus:border-accent focus:outline-none"
             />
-            <input
-              type="text"
-              placeholder="Center wallet"
-              value={centerAddress}
-              onChange={(e) => setCenterAddress(e.target.value)}
-              className="w-36 rounded border border-card-border bg-background px-2 py-1 text-xs focus:border-accent focus:outline-none"
-            />
+            {/* Multi-wallet chip input */}
+            <div
+              className="flex flex-wrap items-center gap-1 rounded border border-card-border bg-background px-2 py-0.5 min-w-32 max-w-xs focus-within:border-accent transition-colors"
+            >
+              {centerAddresses.map((addr) => (
+                <span
+                  key={addr}
+                  className="inline-flex items-center gap-0.5 rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-mono text-accent"
+                >
+                  {addr.length > 14 ? addr.slice(0, 6) + "\u2026" + addr.slice(-4) : addr}
+                  <button
+                    onClick={() => setCenterAddresses((prev) => prev.filter((a) => a !== addr))}
+                    className="ml-0.5 leading-none text-accent/60 hover:text-accent"
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                placeholder={centerAddresses.length === 0 ? "Wallet(s)\u2026" : "+wallet"}
+                value={addressInput}
+                onChange={(e) => setAddressInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.key === "Enter" || e.key === ",") && addressInput.trim()) {
+                    e.preventDefault();
+                    const val = addressInput.trim().replace(/,+$/, "");
+                    if (val && !centerAddresses.includes(val)) {
+                      setCenterAddresses((prev) => [...prev, val]);
+                    }
+                    setAddressInput("");
+                  } else if (e.key === "Backspace" && !addressInput && centerAddresses.length > 0) {
+                    setCenterAddresses((prev) => prev.slice(0, -1));
+                  }
+                }}
+                className="min-w-20 flex-1 bg-transparent py-0.5 text-xs focus:outline-none"
+              />
+            </div>
             <input
               type="number"
               min={10}
@@ -415,12 +472,14 @@ export default function GraphExplorerPage() {
               elements={elements}
               onNodeClick={handleNodeClick}
               highlightPath={highlightPath}
+              highlightedNodes={centerAddresses}
               volumeThreshold={volumeThreshold}
               colorMode={colorMode}
               animateTime={animateTime}
               layoutMode={layoutMode}
               reduceAnimations={reduceAnimations}
               vizSettings={vizSettings}
+              focusNodeId={centerAddresses.length === 1 ? (focusNodeId || centerAddresses[0]) : undefined}
               style={{ width: "100%", height: "100%" }}
             />
           ) : (
@@ -428,6 +487,7 @@ export default function GraphExplorerPage() {
               elements={elements}
               onNodeClick={handleNodeClick}
               highlightPath={highlightPath}
+              highlightedNodes={centerAddresses}
               style={{ width: "100%", height: "100%" }}
             />
           )

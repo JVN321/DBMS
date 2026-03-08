@@ -10,8 +10,11 @@ import {
   Repeat,
   GitFork,
   Users,
+  Copy,
+  Check,
 } from "lucide-react";
 import LoadingSpinner from "../components/LoadingSpinner";
+import SearchBar from "../components/SearchBar";
 import { getSuspicious } from "@/lib/api";
 
 const DETECTION_TYPES = [
@@ -67,13 +70,16 @@ export default function SuspiciousPage() {
   return (
     <div className="p-6 lg:p-8">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Suspicious Activity
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          Detect fraud patterns in the transaction graph
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Suspicious Activity
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            Detect fraud patterns in the transaction graph
+          </p>
+        </div>
+        <SearchBar placeholder="Look up a wallet address..." />
       </div>
 
       {/* Detection type tabs */}
@@ -292,14 +298,29 @@ export default function SuspiciousPage() {
 }
 
 function WalletLink({ address, router }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(address).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
   return (
-    <button
-      onClick={() =>
-        router.push(`/wallet/${encodeURIComponent(address)}`)
-      }
-      className="font-mono text-xs text-accent hover:underline"
-    >
-      {address?.slice(0, 16)}...
-    </button>
+    <span className="inline-flex items-center gap-1">
+      <button
+        onClick={() => router.push(`/wallet/${encodeURIComponent(address)}`)}
+        className="font-mono text-xs text-accent hover:underline"
+      >
+        {address?.slice(0, 16)}...
+      </button>
+      <button
+        onClick={handleCopy}
+        title={`Copy: ${address}`}
+        className="rounded p-0.5 text-muted hover:text-foreground transition-colors"
+      >
+        {copied ? <Check size={10} className="text-success" /> : <Copy size={10} />}
+      </button>
+    </span>
   );
 }

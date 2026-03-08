@@ -79,14 +79,30 @@ export default async function graphRoutes(fastify) {
     const limit = parseInt(request.query.limit || '200', 10);
     const coinType = request.query.coin_type || null;
     const address = request.query.address || null;
+    // Multi-wallet: ?addresses=addr1,addr2,…  (max 10)
+    const addressesParam = request.query.addresses || null;
+    const addresses = addressesParam
+      ? addressesParam.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 10)
+      : null;
 
     const session = getSession();
     try {
       let cypher;
       const params = { limit };
 
-      if (address) {
-        // Ego-centered subgraph (1-hop neighborhood)
+      if (addresses && addresses.length > 0) {
+        // Multi-wallet ego-subgraph — 1-hop neighborhood for each address
+        cypher = `
+          MATCH (center:Wallet)-[t:TRANSFER]-(neighbor:Wallet)
+          WHERE center.address IN $addresses
+          ${coinType ? 'AND t.coin_type = $coinType' : ''}
+          RETURN center, t, neighbor
+          LIMIT toInteger($limit)
+        `;
+        params.addresses = addresses;
+        if (coinType) params.coinType = coinType;
+      } else if (address) {
+        // Single ego-centered subgraph (1-hop neighborhood)
         cypher = `
           MATCH (center:Wallet {address: $address})-[t:TRANSFER]-(neighbor:Wallet)
           ${coinType ? 'WHERE t.coin_type = $coinType' : ''}

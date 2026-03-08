@@ -207,6 +207,7 @@ export default function GraphViewer3D({
   layoutMode = "force",        // "force" | "fraud"
   reduceAnimations = false,
   vizSettings = {},
+  focusNodeId = null,
   style,
 }) {
   const containerRef = useRef(null);
@@ -345,6 +346,9 @@ export default function GraphViewer3D({
         target: e.data.target,
         edgeType: e.data.edgeType,
         amount: e.data.amount,
+        coin_type: e.data.coin_type,
+        timestamp: e.data.timestamp,
+        txid: e.data.txid || e.data.id,
         label: e.data.label,
         normalizedTime: parseFloat(e.data?.normalizedTime ?? 0),
         color: isPathEdge ? "rgba(245, 158, 11, 0.8)" : "rgba(100, 120, 160, 0.35)",
@@ -489,6 +493,33 @@ export default function GraphViewer3D({
           ${patternBadge}
         </div>`;
       })
+      .linkLabel((link) => {
+        const src = typeof link.source === 'object' ? (link.source.label || link.source.id) : link.source;
+        const tgt = typeof link.target === 'object' ? (link.target.label || link.target.id) : link.target;
+        const shortSrc = src?.length > 16 ? src.slice(0, 8) + '\u2026' + src.slice(-6) : src;
+        const shortTgt = tgt?.length > 16 ? tgt.slice(0, 8) + '\u2026' + tgt.slice(-6) : tgt;
+        const amt = link.amount != null
+          ? `${Number(link.amount).toLocaleString()} ${link.coin_type || ''}`.trim()
+          : '—';
+        const ts = link.timestamp
+          ? new Date(link.timestamp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+          : null;
+        const txShort = link.txid?.length > 20
+          ? link.txid.slice(0, 10) + '\u2026' + link.txid.slice(-6)
+          : link.txid;
+        const pathBadge = link.isPathEdge
+          ? `<div style="margin-top:4px;color:#f59e0b;font-weight:700;">&#9654; Path edge</div>`
+          : '';
+        return `<div style="background:rgba(5,8,22,0.92);color:#e4e4e7;padding:8px 12px;border-radius:8px;font-size:12px;font-family:monospace;border:1px solid #27272a;pointer-events:none;max-width:320px;">
+          <div style="font-weight:700;margin-bottom:4px;color:#818cf8;">&#8594; Transfer</div>
+          <div style="color:#a1a1aa;">From: <span style="color:#e4e4e7">${shortSrc}</span></div>
+          <div style="color:#a1a1aa;">To: &nbsp;&nbsp;<span style="color:#e4e4e7">${shortTgt}</span></div>
+          <div style="color:#a1a1aa;margin-top:4px;">Amount: <span style="color:#34d399">${amt}</span></div>
+          ${ts ? `<div style="color:#a1a1aa;">Date: <span style="color:#e4e4e7">${ts}</span></div>` : ''}
+          ${txShort ? `<div style="color:#a1a1aa;">TxID: <span style="color:#71717a">${txShort}</span></div>` : ''}
+          ${pathBadge}
+        </div>`;
+      })
 
       // ── Edges — animated directional particles ──
       .linkColor((link) => link.color)
@@ -593,6 +624,23 @@ export default function GraphViewer3D({
     });
 
     Graph.graphData(graphData);
+
+    // ── Fly camera to focusNodeId when simulation settles ──
+    if (focusNodeId) {
+      Graph.onEngineStop(() => {
+        if (!graphRef.current || userInteractedRef.current) return;
+        const target = graphData.nodes.find(
+          (n) => n.id === focusNodeId || n.label === focusNodeId
+        );
+        if (!target) return;
+        const { x = 0, y = 0, z = 0 } = target;
+        graphRef.current.cameraPosition(
+          { x: x + 200, y: y + 50, z: z + 300 },
+          { x, y, z },
+          1200
+        );
+      });
+    }
 
     // ── Scene enhancements (lighting, fog, starfield) ──
     setTimeout(() => {
@@ -796,7 +844,7 @@ export default function GraphViewer3D({
         graphRef.current = null;
       }
     };
-  }, [ForceGraph3DModule, graphData, onNodeClick, animateTime, layoutMode, reduceAnimations]);
+  }, [ForceGraph3DModule, graphData, onNodeClick, animateTime, layoutMode, reduceAnimations, focusNodeId]);
 
   // ── Live settings updates — update the existing graph without full recreation ──
   useEffect(() => {

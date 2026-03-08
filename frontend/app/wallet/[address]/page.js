@@ -195,9 +195,8 @@ export default function WalletDetailPage({ params }) {
                 onNodeClick={(addr) =>
                   router.push(`/wallet/${encodeURIComponent(addr)}`)
                 }
-                highlightedNodes={
-                  wallet.riskScore >= 30 ? [decodedAddress] : []
-                }
+                highlightedNodes={[decodedAddress]}
+                focusNodeId={decodedAddress}
                 style={{ height: "400px" }}
               />
             ) : (
@@ -206,9 +205,7 @@ export default function WalletDetailPage({ params }) {
                 onNodeClick={(addr) =>
                   router.push(`/wallet/${encodeURIComponent(addr)}`)
                 }
-                highlightedNodes={
-                  wallet.riskScore >= 30 ? [decodedAddress] : []
-                }
+                highlightedNodes={[decodedAddress]}
                 style={{ height: "350px" }}
               />
             )}

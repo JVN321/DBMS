@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, FileText, CheckCircle, AlertCircle } from "lucide-react";
+import { Upload, FileText, CheckCircle, AlertCircle, ShieldOff } from "lucide-react";
 import { uploadTransactions, clearDatabase } from "@/lib/api";
+import { useAuth } from "@/lib/authContext";
 
 export default function UploadForm() {
+  const { isAdmin, loading: authLoading } = useAuth();
   const [dragover, setDragover] = useState(false);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -13,6 +15,18 @@ export default function UploadForm() {
   const [clearing, setClearing] = useState(false);
   const [clearResult, setClearResult] = useState(null);
   const inputRef = useRef(null);
+
+  if (authLoading) return null;
+
+  if (!isAdmin) {
+    return (
+      <div className="rounded-xl border border-card-border bg-card p-10 text-center">
+        <ShieldOff size={36} className="mx-auto mb-4 text-muted" />
+        <p className="text-sm font-semibold text-foreground">Admin access required</p>
+        <p className="mt-1 text-xs text-muted">Only administrators can upload transaction data.</p>
+      </div>
+    );
+  }
 
   const handleClear = async () => {
     if (!window.confirm('Delete ALL nodes and transactions from the database? This cannot be undone.')) return;

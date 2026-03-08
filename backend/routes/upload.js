@@ -1,8 +1,9 @@
 import { parseCSV, parseJSON, detectFormat } from '../ingestion/parser.js';
 import { ingestTransactions } from '../services/ingestion.js';
+import { adminMiddleware } from '../middleware/authMiddleware.js';
 
 export default async function uploadRoutes(fastify) {
-  fastify.post('/upload-transactions', async (request, reply) => {
+  fastify.post('/upload-transactions', { onRequest: [adminMiddleware] }, async (request, reply) => {
     const data = await request.file();
 
     if (!data) {

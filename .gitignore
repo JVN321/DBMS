@@ -1,6 +1,9 @@
 # dependencies
 node_modules/
 
+backend/node_modules/
+
+
 # next.js
 frontend/.next/
 frontend/out/
@@ -9,6 +12,8 @@ frontend/out/
 .env
 frontend/.env.local
 backend/.env
+backend/package-lock.json
+frontend/package-lock.json
 
 # misc
 .DS_Store
