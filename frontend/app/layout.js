@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
 import FloatingBackground from "./components/FloatingBackground";
+import MainWrapper from "./components/MainWrapper";
 import { AuthProvider } from "@/lib/authContext";
 
 const geistSans = Geist({
@@ -29,9 +30,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <FloatingBackground />
           <Sidebar />
-          <main className="lg:pl-64 relative z-10 pointer-events-none">
-            <div className="min-h-screen pointer-events-auto">{children}</div>
-          </main>
+          <MainWrapper>{children}</MainWrapper>
         </AuthProvider>
       </body>
     </html>

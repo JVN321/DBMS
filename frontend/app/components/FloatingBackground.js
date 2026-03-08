@@ -41,7 +41,7 @@ export default function FloatingBackground() {
     setMounted(true);
   }, []);
 
-  if (!mounted || pathname === '/login') return null;
+  if (!mounted || pathname === '/login' || pathname === '/') return null;
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">

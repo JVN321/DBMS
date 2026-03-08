@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Filter, Route, AlertCircle, Box, Grid2x2, Palette, Timer, Crosshair, Zap, Settings } from "lucide-react";
@@ -28,7 +28,15 @@ const GraphViewer3D = dynamic(() => import("../components/GraphViewer3D"), {
   ),
 });
 
-export default function GraphExplorerPage() {
+export default function GraphExplorerPageWrapper() {
+  return (
+    <Suspense fallback={<LoadingSpinner text="Loading graph explorer..." />}>
+      <GraphExplorerPage />
+    </Suspense>
+  );
+}
+
+function GraphExplorerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
