@@ -509,7 +509,8 @@ export default function GraphViewer3D({
       })
       .onNodeHover((node) => {
         container.style.cursor = node ? "pointer" : "default";
-      });
+      })
+      .enableNodeDrag(false); // drag only when Ctrl is held
 
     // ── Improved physics forces ──
     Graph.d3Force("charge").strength(-220);
@@ -666,6 +667,22 @@ export default function GraphViewer3D({
       }, 3000);
     }
 
+    // ── Ctrl key → enable node drag ──
+    const onCtrlDown = (e) => {
+      if (e.key === "Control") {
+        graphRef.current?.enableNodeDrag(true);
+        container.style.cursor = "grab";
+      }
+    };
+    const onCtrlUp = (e) => {
+      if (e.key === "Control") {
+        graphRef.current?.enableNodeDrag(false);
+        container.style.cursor = "default";
+      }
+    };
+    window.addEventListener("keydown", onCtrlDown);
+    window.addEventListener("keyup", onCtrlUp);
+
     // ── WASD keyboard navigation ──
     const MOVE_SPEED = 4;
     const SHIFT_MULTIPLIER = 3;
@@ -752,6 +769,8 @@ export default function GraphViewer3D({
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("keydown", onCtrlDown);
+      window.removeEventListener("keyup", onCtrlUp);
       keysRef.current.clear();
       container.removeEventListener("pointerdown", onInteract);
       container.removeEventListener("wheel", onInteract);
@@ -869,8 +888,9 @@ export default function GraphViewer3D({
           Left-drag rotate · Right-drag pan · Scroll zoom
           <br />
           <span className="text-[9px] opacity-60">
-            Hold <kbd className="rounded border border-card-border bg-background px-0.5 text-[8px] font-mono">Shift</kbd> for
-            faster movement · Space = up
+            <kbd className="rounded border border-card-border bg-background px-0.5 text-[8px] font-mono">Ctrl</kbd>+drag node to pin
+            {" · "}
+            <kbd className="rounded border border-card-border bg-background px-0.5 text-[8px] font-mono">Shift</kbd> faster · Space = up
           </span>
         </div>
       </div>

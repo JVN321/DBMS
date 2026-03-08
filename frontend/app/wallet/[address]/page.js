@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Grid2x2,
   Box,
+  Copy,
+  Check,
 } from "lucide-react";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import GraphViewer from "../../components/GraphViewer";
@@ -44,7 +46,15 @@ export default function WalletDetailPage({ params }) {
   const [graphElements, setGraphElements] = useState(null);
   const [view3D, setView3D] = useState(false);
   const [page, setPage] = useState(0);
+  const [copiedKey, setCopiedKey] = useState(null);
   const pageSize = 20;
+
+  const handleCopy = (text, key) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 1500);
+    });
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -95,6 +105,13 @@ export default function WalletDetailPage({ params }) {
           <h1 className="font-mono text-lg font-bold tracking-tight">
             {decodedAddress}
           </h1>
+          <button
+            onClick={() => handleCopy(decodedAddress, "header")}
+            title="Copy address"
+            className="rounded p-1 text-muted hover:text-foreground hover:bg-card transition-colors"
+          >
+            {copiedKey === "header" ? <Check size={14} className="text-success" /> : <Copy size={14} />}
+          </button>
           <span className={`risk-badge risk-${riskLevel}`}>
             <ShieldAlert size={12} />
             Risk: {wallet.riskScore}/100
@@ -240,24 +257,44 @@ export default function WalletDetailPage({ params }) {
                       </span>
                     </td>
                     <td>
-                      <button
-                        onClick={() =>
-                          router.push(
-                            `/wallet/${encodeURIComponent(tx.counterparty)}`
-                          )
-                        }
-                        className="font-mono text-xs text-accent hover:underline"
-                      >
-                        {tx.counterparty?.slice(0, 16)}...
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() =>
+                            router.push(
+                              `/wallet/${encodeURIComponent(tx.counterparty)}`
+                            )
+                          }
+                          className="font-mono text-xs text-accent hover:underline"
+                        >
+                          {tx.counterparty?.slice(0, 16)}...
+                        </button>
+                        <button
+                          onClick={() => handleCopy(tx.counterparty, `cp-${i}`)}
+                          title="Copy address"
+                          className="shrink-0 rounded p-0.5 text-muted hover:text-foreground transition-colors"
+                        >
+                          {copiedKey === `cp-${i}` ? <Check size={10} className="text-success" /> : <Copy size={10} />}
+                        </button>
+                      </div>
                     </td>
                     <td className="font-mono text-xs">
                       {formatETH(tx.amount)}
                     </td>
                     <td className="text-xs">{tx.coin_type}</td>
                     <td className="text-xs text-muted">{tx.timestamp}</td>
-                    <td className="max-w-[120px] truncate font-mono text-xs text-muted">
-                      {tx.txid}
+                    <td className="max-w-[120px] font-mono text-xs text-muted">
+                      <div className="flex items-center gap-1">
+                        <span className="truncate">{tx.txid}</span>
+                        {tx.txid && (
+                          <button
+                            onClick={() => handleCopy(tx.txid, `tx-${i}`)}
+                            title="Copy TX ID"
+                            className="shrink-0 rounded p-0.5 text-muted hover:text-foreground transition-colors"
+                          >
+                            {copiedKey === `tx-${i}` ? <Check size={10} className="text-success" /> : <Copy size={10} />}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
