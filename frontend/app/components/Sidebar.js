@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Upload,
@@ -10,19 +10,61 @@ import {
   Search,
   Menu,
   X,
+  LogOut,
+  Settings,
+  Users,
+  FileText,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/lib/authContext";
+import LoadingSpinner from "./LoadingSpinner";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+const userNavItems = [
+  { href: "/user", label: "Dashboard", icon: LayoutDashboard },
   { href: "/upload", label: "Upload Data", icon: Upload },
   { href: "/graph", label: "Graph Explorer", icon: Network },
   { href: "/suspicious", label: "Suspicious", icon: ShieldAlert },
 ];
 
+const adminNavItems = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/users", label: "Manage Users", icon: Users },
+  { href: "/suspicious", label: "Suspicious", icon: ShieldAlert },
+  { href: "/admin/logs", label: "Activity Logs", icon: FileText },
+  { href: "/admin/uploads", label: "Data Management", icon: BarChart3 },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
+];
+
 export default function Sidebar() {
+  const router = useRouter();
   const pathname = usePathname();
+  const { user, logout, isAuthenticated, loading, isAdmin } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  // Don't show sidebar on login page or during loading
+  if (pathname === "/login" || loading) {
+    return null;
+  }
+
+  // Don't show sidebar if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  const navItems = isAdmin ? adminNavItems : userNavItems;
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+      router.push("/login");
+    } catch (err) {
+      console.error("Logout error:", err);
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <>
@@ -53,11 +95,35 @@ export default function Sidebar() {
           </div>
         </div>
 
+        {/* User Info */}
+        {user && (
+          <div className="border-b border-sidebar-border px-4 py-4 space-y-2">
+            <p className="text-xs text-muted uppercase tracking-wide">Logged in as</p>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-accent/20 flex items-center justify-center">
+                <span className="text-xs font-bold text-accent">
+                  {user.username?.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user.username}
+                </p>
+                <p className="text-xs text-muted capitalize">{user.role}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active =
-              href === "/" ? pathname === "/" : pathname.startsWith(href);
+              href === "/user"
+                ? pathname === "/user"
+                : href === "/admin"
+                ? pathname === "/admin"
+                : pathname.startsWith(href);
             return (
               <Link
                 key={href}
@@ -76,15 +142,36 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* Search hint */}
-        <div className="border-t border-sidebar-border p-4">
-          <Link
-            href="/graph"
-            className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs text-muted hover:text-foreground"
+        {/* Search or Logout */}
+        <div className="border-t border-sidebar-border p-4 space-y-2">
+          {!isAdmin && (
+            <Link
+              href="/graph"
+              className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs text-muted hover:text-foreground transition"
+            >
+              <Search size={14} />
+              Search wallets...
+            </Link>
+          )}
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="w-full flex items-center gap-2 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger hover:bg-danger/20 transition disabled:opacity-50"
           >
-            <Search size={14} />
-            Search wallets...
-          </Link>
+            {loggingOut ? (
+              <>
+                <span className="animate-spin">⟳</span>
+                Logging out...
+              </>
+            ) : (
+              <>
+                <LogOut size={14} />
+                Logout
+              </>
+            )}
+          </button>
         </div>
       </aside>
 

@@ -11,6 +11,10 @@ import graphRoutes from './routes/graph.js';
 import statsRoutes from './routes/stats.js';
 import suspiciousRoutes from './routes/suspicious.js';
 import adminRoutes from './routes/admin.js';
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import logsRoutes from './routes/logs.js';
+import settingsRoutes from './routes/settings.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -32,6 +36,10 @@ await fastify.register(graphRoutes);
 await fastify.register(statsRoutes);
 await fastify.register(suspiciousRoutes);
 await fastify.register(adminRoutes);
+await fastify.register(authRoutes);
+await fastify.register(userRoutes);
+await fastify.register(logsRoutes);
+await fastify.register(settingsRoutes);
 
 // Graceful shutdown
 fastify.addHook('onClose', async () => {

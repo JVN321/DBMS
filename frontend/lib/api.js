@@ -2,6 +2,14 @@ import { cached, invalidateAll } from './cache.js';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
+function getAuthHeaders() {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
 // TTLs
 const TTL_STATS      = 2 * 60 * 1000;  // 2 min  — cheap, changes after ingestion
 const TTL_GRAPH      = 5 * 60 * 1000;  // 5 min  — expensive query
@@ -10,7 +18,15 @@ const TTL_WALLET     = 3 * 60 * 1000;  // 3 min  — per-address, moderate cost
 
 async function request(path, options = {}) {
   const url = `${API_URL}${path}`;
-  const res = await fetch(url, options);
+  const headers = {
+    ...getAuthHeaders(),
+    ...options.headers,
+  };
+
+  const res = await fetch(url, {
+    ...options,
+    headers,
+  });
   const data = await res.json();
 
   if (!res.ok) {
@@ -20,6 +36,100 @@ async function request(path, options = {}) {
   return data;
 }
 
+// Auth functions
+export async function login(username, password) {
+  return request('/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function register(username, email, password) {
+  return request('/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, email, password }),
+  });
+}
+
+export async function getCurrentUser() {
+  return request('/auth/me');
+}
+
+export async function logout() {
+  return request('/auth/logout', { method: 'POST' });
+}
+
+export async function refreshToken() {
+  return request('/auth/refresh', { method: 'POST' });
+}
+
+// User management functions
+export async function getUsers({ skip = 0, limit = 50 } = {}) {
+  return request(`/users?skip=${skip}&limit=${limit}`);
+}
+
+export async function getUser(username) {
+  return request(`/users/${encodeURIComponent(username)}`);
+}
+
+export async function updateUser(username, updates) {
+  return request(`/users/${encodeURIComponent(username)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+}
+
+export async function deleteUser(username) {
+  return request(`/users/${encodeURIComponent(username)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function banUser(username, is_banned) {
+  return request(`/users/${encodeURIComponent(username)}/ban`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_banned }),
+  });
+}
+
+// Logging functions
+export async function logActivity(action, details = '') {
+  return request('/logs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, details }),
+  });
+}
+
+export async function getLogs({ skip = 0, limit = 100, username, action } = {}) {
+  const params = new URLSearchParams({ skip, limit });
+  if (username) params.set('username', username);
+  if (action) params.set('action', action);
+  return request(`/logs?${params.toString()}`);
+}
+
+export async function getSystemStats() {
+  return request('/logs/stats/system');
+}
+
+// Settings functions
+export async function getSettings() {
+  return request('/settings');
+}
+
+export async function updateSettings(settings) {
+  return request('/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  });
+}
+
+// Blockchain functions (existing)
 export async function getStats() {
   return cached('stats', () => request('/stats'), TTL_STATS);
 }
@@ -66,9 +176,16 @@ export async function uploadTransactions(file) {
   formData.append('file', file);
 
   const url = `${API_URL}/upload-transactions`;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const res = await fetch(url, {
     method: 'POST',
     body: formData,
+    headers,
   });
   const data = await res.json();
 
