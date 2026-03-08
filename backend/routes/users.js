@@ -218,4 +218,54 @@ export default async function userRoutes(fastify) {
       }
     }
   );
+
+  // Get current user's preferences
+  fastify.get(
+    '/users/me/preferences',
+    { onRequest: [authMiddleware] },
+    async (request, reply) => {
+      const { username } = request.user;
+      const session = getSession();
+      try {
+        const result = await session.run(
+          'MATCH (u:User {username: $username}) RETURN u.preferences AS prefs',
+          { username }
+        );
+        const raw = result.records[0]?.get('prefs');
+        const prefs = raw ? JSON.parse(raw) : {};
+        return reply.code(200).send({ preferences: prefs });
+      } catch (err) {
+        fastify.log.error(err);
+        return reply.code(500).send({ error: 'Failed to fetch preferences' });
+      } finally {
+        await session.close();
+      }
+    }
+  );
+
+  // Save current user's preferences
+  fastify.put(
+    '/users/me/preferences',
+    { onRequest: [authMiddleware] },
+    async (request, reply) => {
+      const { username } = request.user;
+      const preferences = request.body;
+      if (!preferences || typeof preferences !== 'object') {
+        return reply.code(400).send({ error: 'Preferences must be a JSON object' });
+      }
+      const session = getSession();
+      try {
+        await session.run(
+          'MATCH (u:User {username: $username}) SET u.preferences = $prefs',
+          { username, prefs: JSON.stringify(preferences) }
+        );
+        return reply.code(200).send({ ok: true });
+      } catch (err) {
+        fastify.log.error(err);
+        return reply.code(500).send({ error: 'Failed to save preferences' });
+      } finally {
+        await session.close();
+      }
+    }
+  );
 }

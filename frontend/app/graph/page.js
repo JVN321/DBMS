@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Filter, Route, AlertCircle, Box, Grid2x2, Palette, Timer, Crosshair, Zap, Settings } from "lucide-react";
 import GraphViewer from "../components/GraphViewer";
 import LoadingSpinner from "../components/LoadingSpinner";
-import { getGraph, getTransactionPath } from "@/lib/api";
+import { getGraph, getTransactionPath, getMyPreferences, saveMyPreferences } from "@/lib/api";
 import { useAuth } from "@/lib/authContext";
 
 // Dynamic import for 3D viewer (not SSR-compatible due to WebGL/Three.js)
@@ -58,19 +58,33 @@ export default function GraphExplorerPage() {
   // URL-derived focus node (camera flies to this address on load)
   const focusNodeId = searchParams?.get('address') || null;
 
-  // Load persisted viz settings for this user
+  // Load persisted viz settings from the database (localStorage as instant-restore cache)
   useEffect(() => {
     if (!user?.username) return;
+    // Apply localStorage immediately so the graph doesn't flash defaults
     try {
-      const saved = localStorage.getItem(`viz_settings_${user.username}`);
-      if (saved) setVizSettings(JSON.parse(saved));
+      const cached = localStorage.getItem(`viz_settings_${user.username}`);
+      if (cached) setVizSettings(JSON.parse(cached));
     } catch {}
+    // Then fetch authoritative copy from DB and apply if different
+    getMyPreferences()
+      .then(({ preferences }) => {
+        if (preferences?.vizSettings) {
+          setVizSettings(preferences.vizSettings);
+          localStorage.setItem(`viz_settings_${user.username}`, JSON.stringify(preferences.vizSettings));
+        }
+      })
+      .catch(() => {}); // silently fall back to cached/defaults
   }, [user?.username]);
 
-  // Save viz settings whenever they change
+  // Save viz settings to DB (debounced 800 ms) and keep localStorage in sync
   useEffect(() => {
     if (!user?.username) return;
     localStorage.setItem(`viz_settings_${user.username}`, JSON.stringify(vizSettings));
+    const timer = setTimeout(() => {
+      saveMyPreferences({ vizSettings }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timer);
   }, [vizSettings, user?.username]);
 
   // Path finder

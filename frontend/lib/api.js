@@ -169,6 +169,18 @@ export async function getSuspicious({ type = 'circular', threshold = 5, limit = 
   return cached(`suspicious:${qs}`, () => request(`/suspicious?${qs}`), TTL_SUSPICIOUS);
 }
 
+export async function getMyPreferences() {
+  return request('/users/me/preferences');
+}
+
+export async function saveMyPreferences(preferences) {
+  return request('/users/me/preferences', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(preferences),
+  });
+}
+
 export async function clearDatabase() {
   const result = await request('/clear-database', { method: 'DELETE' });
   invalidateAll(); // stale data — nuke everything
