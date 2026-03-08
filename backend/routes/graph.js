@@ -3,6 +3,77 @@ import { neo4jToCytoscape } from '../services/graph-transform.js';
 import { bulkRiskScores } from '../services/detection.js';
 import { detectCommunities } from '../services/community.js';
 
+// ── Fraud pattern classification (runs on already-fetched subgraph) ──
+function classifyFraudPatterns(elements) {
+  const nodeMap = new Map(); // id → { outDeg, inDeg, outTargets, inSources, totalVol }
+  for (const n of elements.nodes) {
+    nodeMap.set(n.data.id, { outDeg: 0, inDeg: 0, outTargets: new Set(), inSources: new Set(), totalVol: 0 });
+  }
+
+  // Adjacency for cycle detection (directed)
+  const adj = new Map(); // id → [target_id, …]
+
+  for (const e of elements.edges) {
+    const s = e.data.source;
+    const t = e.data.target;
+    const amt = parseFloat(e.data.amount || 0);
+    if (nodeMap.has(s)) {
+      const ns = nodeMap.get(s);
+      ns.outDeg++;
+      ns.outTargets.add(t);
+      ns.totalVol += amt;
+    }
+    if (nodeMap.has(t)) {
+      const nt = nodeMap.get(t);
+      nt.inDeg++;
+      nt.inSources.add(s);
+      nt.totalVol += amt;
+    }
+    if (!adj.has(s)) adj.set(s, []);
+    adj.get(s).push(t);
+  }
+
+  // Simple cycle check (DFS up to depth 6 from each node)
+  const inCycle = new Set();
+  for (const startId of nodeMap.keys()) {
+    const visited = new Set();
+    const stack = [[startId, 0]];
+    while (stack.length > 0) {
+      const [cur, depth] = stack.pop();
+      if (depth > 0 && cur === startId) { inCycle.add(startId); break; }
+      if (depth >= 6 || visited.has(cur)) continue;
+      visited.add(cur);
+      for (const nb of adj.get(cur) || []) {
+        stack.push([nb, depth + 1]);
+      }
+    }
+  }
+
+  // Classify each node
+  const patterns = {};  // id → pattern type string
+  for (const [id, info] of nodeMap) {
+    const { outDeg, inDeg, outTargets, inSources } = info;
+    const totalDeg = outDeg + inDeg;
+    const hasCycle = inCycle.has(id);
+
+    if (hasCycle && outDeg >= 2 && inDeg >= 2) {
+      patterns[id] = 'circular';       // circular laundering
+    } else if (outDeg >= 5 && inDeg <= 1) {
+      patterns[id] = 'fanout';          // fan-out / distribution scam
+    } else if (inDeg >= 5 && outDeg <= 1) {
+      patterns[id] = 'fanin';           // collection point
+    } else if (totalDeg >= 8) {
+      patterns[id] = 'hub';             // exchange hub
+    } else if (outDeg >= 3 && inDeg >= 3) {
+      patterns[id] = 'mixer';           // mixing service
+    } else {
+      patterns[id] = 'normal';
+    }
+  }
+
+  return patterns;
+}
+
 export default async function graphRoutes(fastify) {
   fastify.get('/graph', async (request, reply) => {
     const limit = parseInt(request.query.limit || '200', 10);
@@ -113,6 +184,12 @@ export default async function graphRoutes(fastify) {
       }
       for (const node of elements.nodes) {
         node.data.clusterId = communities.get(node.data.id) ?? -1;
+      }
+
+      // ── Fraud pattern classification ────────────────────────────────
+      const fraudPatterns = classifyFraudPatterns(elements);
+      for (const node of elements.nodes) {
+        node.data.fraudPattern = fraudPatterns[node.data.id] || 'normal';
       }
 
       // ── Temporal normalization ──────────────────────────────────────
