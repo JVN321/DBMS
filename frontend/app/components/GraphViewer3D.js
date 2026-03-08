@@ -297,7 +297,7 @@ export default function GraphViewer3D({
         color,
         isHighlighted,
         isOnPath,
-        fz: normVol * 300 - 150,
+        fz: normVol * 120 - 60,
         nodeSize,
         glowIntensity: normVol,
       };
@@ -473,15 +473,15 @@ export default function GraphViewer3D({
       });
 
     // ── Improved physics forces ──
-    Graph.d3Force("charge").strength(-220);
-    Graph.d3Force("link").distance(120).strength(0.25);
+    Graph.d3Force("charge").strength(-80);
+    Graph.d3Force("link").distance(50).strength(0.6);
 
     // Collision force — prevent node overlap
     import("d3-force-3d").then((d3) => {
       if (!graphRef.current) return;
       Graph.d3Force(
         "collision",
-        d3.forceCollide((node) => (node.nodeSize || 5) * 1.4)
+        d3.forceCollide((node) => (node.nodeSize || 5) * 1.1)
       );
     }).catch(() => {
       // d3-force-3d bundled inside 3d-force-graph; if import fails, skip collision
@@ -520,7 +520,7 @@ export default function GraphViewer3D({
         c.y /= cnt;
         c.z /= cnt;
       }
-      const strength = alpha * 0.05;
+      const strength = alpha * 0.12;
       for (const n of graphData.nodes) {
         if (n.clusterId < 0 || n.fx !== undefined) continue;
         const c = centroids.get(n.clusterId);
@@ -557,7 +557,7 @@ export default function GraphViewer3D({
       sceneExtrasRef.current.push(accentLight);
 
       // Depth fog
-      scene.fog = new T.FogExp2(0x050816, 0.0015);
+      scene.fog = new T.FogExp2(0x050816, 0.003);
 
       // Starfield background
       const stars = createStarfield(T, 4000, 2000);
@@ -567,7 +567,7 @@ export default function GraphViewer3D({
 
     // Camera initial position
     setTimeout(() => {
-      Graph.cameraPosition({ x: 0, y: 0, z: 500 }, { x: 0, y: 0, z: 0 }, 1000);
+      Graph.cameraPosition({ x: 0, y: 0, z: 250 }, { x: 0, y: 0, z: 0 }, 1000);
     }, 500);
 
     graphRef.current = Graph;
@@ -579,13 +579,69 @@ export default function GraphViewer3D({
     container.addEventListener("pointerdown", onInteract);
     container.addEventListener("wheel", onInteract);
 
+    // ── WASD keyboard navigation ──
+    const keysHeld = new Set();
+    const MOVE_SPEED = 3;
+    const onKeyDown = (e) => {
+      const k = e.key.toLowerCase();
+      if (["w","a","s","d","q","e"," ","shift"].includes(k)) {
+        keysHeld.add(k);
+        userInteracted = true;
+        e.preventDefault();
+      }
+    };
+    const onKeyUp = (e) => {
+      keysHeld.delete(e.key.toLowerCase());
+    };
+    // Make container focusable & grab focus
+    container.setAttribute("tabindex", "0");
+    container.style.outline = "none";
+    container.addEventListener("keydown", onKeyDown);
+    container.addEventListener("keyup", onKeyUp);
+    container.addEventListener("click", () => container.focus());
+    container.focus();
+
     const orbitTick = () => {
       if (!graphRef.current) return;
+
+      // WASD movement
+      if (keysHeld.size > 0) {
+        const cam = graphRef.current.camera();
+        if (cam) {
+          const T = window.__THREE__;
+          if (T) {
+            const forward = new T.Vector3();
+            cam.getWorldDirection(forward);
+            const right = new T.Vector3();
+            right.crossVectors(forward, cam.up).normalize();
+            const up = cam.up.clone().normalize();
+
+            const delta = new T.Vector3();
+            if (keysHeld.has("w")) delta.add(forward.clone().multiplyScalar(MOVE_SPEED));
+            if (keysHeld.has("s")) delta.add(forward.clone().multiplyScalar(-MOVE_SPEED));
+            if (keysHeld.has("a")) delta.add(right.clone().multiplyScalar(-MOVE_SPEED));
+            if (keysHeld.has("d")) delta.add(right.clone().multiplyScalar(MOVE_SPEED));
+            if (keysHeld.has(" ")) delta.add(up.clone().multiplyScalar(MOVE_SPEED));
+            if (keysHeld.has("shift")) delta.add(up.clone().multiplyScalar(-MOVE_SPEED));
+            if (keysHeld.has("q")) delta.add(up.clone().multiplyScalar(MOVE_SPEED));
+            if (keysHeld.has("e")) delta.add(up.clone().multiplyScalar(-MOVE_SPEED));
+
+            if (delta.length() > 0) {
+              const pos = cam.position;
+              graphRef.current.cameraPosition(
+                { x: pos.x + delta.x, y: pos.y + delta.y, z: pos.z + delta.z }
+              );
+            }
+          }
+        }
+      }
+
+      // Auto orbit when user hasn't interacted
       if (!userInteracted) {
         orbitAngle += 0.0008;
-        const r = 500;
+        const r = 250;
         graphRef.current.cameraPosition(
-          { x: r * Math.sin(orbitAngle), y: 50 * Math.sin(orbitAngle * 0.5), z: r * Math.cos(orbitAngle) },
+          { x: r * Math.sin(orbitAngle), y: 30 * Math.sin(orbitAngle * 0.5), z: r * Math.cos(orbitAngle) },
           { x: 0, y: 0, z: 0 }
         );
       }
@@ -624,6 +680,8 @@ export default function GraphViewer3D({
     return () => {
       container.removeEventListener("pointerdown", onInteract);
       container.removeEventListener("wheel", onInteract);
+      container.removeEventListener("keydown", onKeyDown);
+      container.removeEventListener("keyup", onKeyUp);
       resizeObs.disconnect();
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (orbitRef.current) cancelAnimationFrame(orbitRef.current);
@@ -725,7 +783,12 @@ export default function GraphViewer3D({
           <span className="font-medium text-foreground">Controls:</span>{" "}
           Left-drag rotate · Right-drag pan · Scroll zoom
           <br />
-          <span className="text-[9px] opacity-60">Camera auto-orbits until you interact</span>
+          <span className="font-medium text-foreground">WASD</span>{" "}
+          move · <span className="font-medium text-foreground">Q/E</span>{" "}
+          up/down · <span className="font-medium text-foreground">Space/Shift</span>{" "}
+          rise/descend
+          <br />
+          <span className="text-[9px] opacity-60">Click graph to enable keyboard · Auto-orbits until interact</span>
         </div>
       </div>
     </div>
