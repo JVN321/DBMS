@@ -101,7 +101,7 @@ export default function GraphExplorerPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col overflow-hidden">
       {/* Header bar */}
       <div className="flex flex-wrap items-center gap-4 border-b border-card-border bg-card px-6 py-3">
         <h1 className="text-lg font-bold tracking-tight">Graph Explorer</h1>
@@ -394,7 +394,7 @@ export default function GraphExplorerPage() {
       </div>
 
       {/* Graph */}
-      <div className="flex-1">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <LoadingSpinner text="Loading graph data..." />

@@ -217,6 +217,8 @@ export default function GraphViewer3D({
   const sceneExtrasRef = useRef([]); // track added scene objects for cleanup
   const keysRef = useRef(new Set());
   const cameraStateRef = useRef(null); // preserve camera across graph recreation
+  const userInteractedRef = useRef(false); // persists across graph recreation — prevents orbit restart
+  const settingsRef = useRef(null); // always-current settings for RAF closures
   const [ForceGraph3DModule, setForceGraph3DModule] = useState(null);
 
   // ── Merged visual settings with defaults ──
@@ -247,6 +249,9 @@ export default function GraphViewer3D({
   useEffect(() => {
     import("three").then((THREE) => { window.__THREE__ = THREE; });
   }, []);
+
+  // Keep settingsRef current so RAF callbacks always read latest values
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
 
   // ── Data transformation ──────────────────────────────────────────
   const graphData = useMemo(() => {
@@ -403,7 +408,8 @@ export default function GraphViewer3D({
 
     // ── Capture settings in closure ──
     const _reduceAnim = reduceAnimations;
-    const _settings = settings;
+    // Use a cancellation token so orphaned setTimeouts from old effect runs don't fire
+    const effectCleanup = { cancelled: false };
 
     const Graph = ForceGraph3DModule()(container)
       .backgroundColor("#050816")
@@ -436,11 +442,11 @@ export default function GraphViewer3D({
         const sphere = new T.Mesh(geo, mat);
 
         // Glow sprite — skip if animations are reduced or intensity is 0
-        if (!_reduceAnim && _settings.glowIntensity > 0) {
-          const glowScale = 1 + node.normalizedVolume * 3 * _settings.glowIntensity;
+        if (!_reduceAnim && settingsRef.current.glowIntensity > 0) {
+          const glowScale = 1 + node.normalizedVolume * 3 * settingsRef.current.glowIntensity;
           const canvas = createGlowTexture(
             node.color,
-            node.glowIntensity * _settings.glowIntensity
+            node.glowIntensity * settingsRef.current.glowIntensity
           );
           const tex = new T.CanvasTexture(canvas);
           const spriteMat = new T.SpriteMaterial({
@@ -488,9 +494,9 @@ export default function GraphViewer3D({
       .linkColor((link) => link.color)
       .linkWidth((link) => link.width)
       .linkOpacity(0.55)
-      .linkDirectionalParticles(_reduceAnim ? 0 : _settings.particleCount)
+      .linkDirectionalParticles(_reduceAnim ? 0 : settingsRef.current.particleCount)
       .linkDirectionalParticleWidth(2)
-      .linkDirectionalParticleSpeed(_settings.particleSpeed)
+      .linkDirectionalParticleSpeed(settingsRef.current.particleSpeed)
       .linkDirectionalParticleColor((link) =>
         link.isPathEdge ? "#f59e0b" : "rgba(140, 160, 210, 0.5)"
       )
@@ -612,7 +618,7 @@ export default function GraphViewer3D({
       sceneExtrasRef.current.push(accentLight);
 
       // Depth fog — disabled when reduceAnimations or fogDensity is 0
-      const fogDensity = _reduceAnim ? 0 : _settings.fogDensity;
+      const fogDensity = _reduceAnim ? 0 : settingsRef.current.fogDensity;
       if (fogDensity > 0) {
         scene.fog = new T.FogExp2(0x050816, fogDensity);
       } else {
@@ -643,16 +649,15 @@ export default function GraphViewer3D({
 
     // ── Camera auto-orbit (disabled when reduceAnimations) ──
     let orbitAngle = 0;
-    let userInteracted = false;
-    const onInteract = () => { userInteracted = true; };
+    const onInteract = () => { userInteractedRef.current = true; };
     container.addEventListener("pointerdown", onInteract);
     container.addEventListener("wheel", onInteract);
 
     if (!_reduceAnim) {
       const orbitTick = () => {
         if (!graphRef.current) return;
-        if (!userInteracted) {
-          orbitAngle += _settings.orbitSpeed;
+        if (!userInteractedRef.current) {
+          orbitAngle += settingsRef.current.orbitSpeed;
           const r = 500;
           graphRef.current.cameraPosition(
             { x: r * Math.sin(orbitAngle), y: 50 * Math.sin(orbitAngle * 0.5), z: r * Math.cos(orbitAngle) },
@@ -663,7 +668,9 @@ export default function GraphViewer3D({
       };
       // Start orbit after layout settles
       setTimeout(() => {
-        orbitRef.current = requestAnimationFrame(orbitTick);
+        if (!effectCleanup.cancelled) {
+          orbitRef.current = requestAnimationFrame(orbitTick);
+        }
       }, 3000);
     }
 
@@ -709,7 +716,7 @@ export default function GraphViewer3D({
       }
       const keys = keysRef.current;
       if (keys.size > 0) {
-        userInteracted = true; // Stop orbit
+        userInteractedRef.current = true; // Stop orbit
 
         const camera = graphRef.current.camera?.();
         const T = window.__THREE__;
@@ -767,6 +774,7 @@ export default function GraphViewer3D({
     resizeObs.observe(container);
 
     return () => {
+      effectCleanup.cancelled = true;
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("keydown", onCtrlDown);
@@ -788,7 +796,21 @@ export default function GraphViewer3D({
         graphRef.current = null;
       }
     };
-  }, [ForceGraph3DModule, graphData, onNodeClick, animateTime, layoutMode, reduceAnimations, settings]);
+  }, [ForceGraph3DModule, graphData, onNodeClick, animateTime, layoutMode, reduceAnimations]);
+
+  // ── Live settings updates — update the existing graph without full recreation ──
+  useEffect(() => {
+    const G = graphRef.current;
+    if (!G) return;
+    G.linkDirectionalParticles(reduceAnimations ? 0 : settings.particleCount);
+    G.linkDirectionalParticleSpeed(settings.particleSpeed);
+    const scene = G.scene?.();
+    if (scene && window.__THREE__) {
+      const T = window.__THREE__;
+      const fogDensity = reduceAnimations ? 0 : settings.fogDensity;
+      scene.fog = fogDensity > 0 ? new T.FogExp2(0x050816, fogDensity) : null;
+    }
+  }, [settings, reduceAnimations]);
 
   // ── Legend ──
   const riskGradient =
