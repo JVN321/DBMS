@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0f;
+  --background: #090312; /* Deep dark purple */
   --foreground: #e4e4e7;
-  --card: #111118;
-  --card-border: #1e1e2e;
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
+  --card: #130a24; /* Slightly lighter deep purple */
+  --card-border: #231145;
+  --accent: #a855f7; /* Neon purple */
+  --accent-hover: #c084fc;
   --danger: #ef4444;
   --warning: #f59e0b;
   --success: #10b981;
-  --muted: #71717a;
-  --sidebar-bg: #08080c;
-  --sidebar-border: #18181b;
+  --muted: #a3a3a3;
+  --sidebar-bg: #0d051a;
+  --sidebar-border: #231145;
 }
 
 @theme inline {
@@ -102,13 +102,75 @@ body {
 .upload-zone {
   border: 2px dashed var(--card-border);
   border-radius: 0.75rem;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .upload-zone:hover,
 .upload-zone.dragover {
   border-color: var(--accent);
-  background: rgba(99, 102, 241, 0.05);
+  background: rgba(168, 85, 247, 0.05); /* Soft neon purple glow */
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+}
+
+/* Card Glow Effect for Interactivity */
+.interactive-card {
+  transition: all 0.3s ease;
+  transform: translateY(0);
+}
+
+.interactive-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent) !important;
+  box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3), inset 0 0 10px rgba(168, 85, 247, 0.05);
+}
+
+/* Background Glowing Ball Animation */
+@keyframes float {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30vw, -20vh) scale(1.2);
+  }
+  66% {
+    transform: translate(-20vw, 20vh) scale(0.9);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.glowing-ball {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(168,85,247,0.8) 0%, rgba(168,85,247,0) 70%);
+  border-radius: 50%;
+  filter: blur(45px);
+  z-index: 0;
+  animation: float 20s ease-in-out infinite;
+  opacity: 0.9;
+}
+
+.interactive-orb {
+  transition: transform 0.2s ease-out;
+}
+
+/* Metallic Floating Silhouette Icons */
+@keyframes drift {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(5deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+.floating-icon {
+  animation: drift linear infinite;
+  opacity: 0.5;
+}
+
+.metallic-outline {
+  color: #e2e8f0; /* Silver base stroke for currentColor */
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 2px rgba(226, 232, 240, 0.9));
 }
 
 /* Table styles */

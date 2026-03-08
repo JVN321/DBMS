@@ -1,6 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
+import FloatingBackground from "./components/FloatingBackground";
+import { AuthProvider } from "@/lib/authContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,10 +26,13 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <Sidebar />
-        <main className="lg:pl-64">
-          <div className="min-h-screen">{children}</div>
-        </main>
+        <AuthProvider>
+          <FloatingBackground />
+          <Sidebar />
+          <main className="lg:pl-64 relative z-10 pointer-events-none">
+            <div className="min-h-screen pointer-events-auto">{children}</div>
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,23 +1,47 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Wallet, ArrowRightLeft, Coins, ShieldAlert } from "lucide-react";
 import StatCard from "./components/StatCard";
 import SearchBar from "./components/SearchBar";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { getStats } from "@/lib/api";
+import { useAuth } from "@/lib/authContext";
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { isAuthenticated, loading: authLoading, isAdmin } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Redirect to login if not authenticated
   useEffect(() => {
-    getStats()
-      .then(setStats)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
+    if (!authLoading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  // Redirect to appropriate dashboard based on role
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      if (isAdmin) {
+        router.push("/admin");
+      } else {
+        router.push("/user");
+      }
+    }
+  }, [authLoading, isAuthenticated, isAdmin, router]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      getStats()
+        .then(setStats)
+        .catch((err) => setError(err.message))
+        .finally(() => setLoading(false));
+    }
+  }, [isAuthenticated]);
 
   return (
     <div className="p-6 lg:p-8">
@@ -102,7 +126,7 @@ function QuickAction({ href, title, description }) {
   return (
     <a
       href={href}
-      className="group rounded-xl border border-card-border bg-card p-5 transition-colors hover:border-accent/50"
+      className="group rounded-xl border border-card-border bg-card p-5 transition-colors hover:border-accent/50 interactive-card"
     >
       <h3 className="text-sm font-semibold group-hover:text-accent">
         {title}

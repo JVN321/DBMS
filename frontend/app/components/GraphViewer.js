@@ -12,8 +12,8 @@ if (typeof window !== "undefined") {
 // Map risk score (0-100) to a color from green → yellow → red
 function riskColor(score, lightness = 50) {
   const s = Math.max(0, Math.min(100, score || 0));
-  // Hue: 120° (green) → 60° (yellow) → 0° (red)
-  const hue = Math.round(120 * (1 - s / 100));
+  // Hue: 280° (purple) → 320° (pink/magenta) → 0° (red)
+  const hue = Math.round(280 - (s / 100) * 280);
   return `hsl(${hue}, 90%, ${lightness}%)`;
 }
 
@@ -70,17 +70,18 @@ const DEFAULT_STYLE = [
   {
     selector: "node.highlighted",
     style: {
-      "background-color": "#f59e0b",
-      "border-color": "#d97706",
+      "background-color": "#c084fc",
+      "border-color": "#a855f7",
       "border-width": 3,
     },
   },
   {
     selector: "node:selected",
     style: {
-      "background-color": "#818cf8",
-      "border-color": "#6366f1",
+      "background-color": "#d8b4fe",
+      "border-color": "#c084fc",
       "border-width": 3,
+      "box-shadow": "0 0 20px rgba(168, 85, 247, 0.8)",
     },
   },
   {
@@ -102,8 +103,8 @@ const DEFAULT_STYLE = [
   {
     selector: "edge.highlighted",
     style: {
-      "line-color": "#f59e0b",
-      "target-arrow-color": "#f59e0b",
+      "line-color": "#a855f7",
+      "target-arrow-color": "#a855f7",
       width: 3,
       "z-index": 10,
     },
