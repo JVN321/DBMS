@@ -203,7 +203,9 @@ export default function GraphViewer3D({
   const settingsRef = useRef(null);
   const hoveredNodeRef = useRef(null);
   const onNodeClickRef = useRef(onNodeClick);
+  const cameraVelRef = useRef({ x: 0, y: 0, z: 0 });
   const [ForceGraph3DModule, setForceGraph3DModule] = useState(null);
+  const [graphReady, setGraphReady] = useState(false);
 
   onNodeClickRef.current = onNodeClick;
 
@@ -547,13 +549,13 @@ export default function GraphViewer3D({
     // ───────────────────────────────────────────────────────────────
     // PHYSICS FORCES
     //
-    // Only three forces are active:
-    //   1. charge   — many-body repulsion so nodes push apart
-    //   2. link     — spring keeps connected nodes together
-    //   3. collision — prevents visual overlap
-    //
-    // No barriers, no gravity wells, no cluster or z-axis bias.
-    // Nodes start near the origin and settle naturally.
+    //   1. charge    — many-body repulsion
+    //   2. link      — spring keeps connected nodes together
+    //   3. gravity   — inward pull, inversely weighted by node volume
+    //                  so heavy/large nodes feel less pull and drift out
+    //   4. spiral    — tangential nudge around cluster centroids giving
+    //                  same-cluster nodes a gentle orbital swirl
+    //   5. collision — prevent visual overlap
     // ───────────────────────────────────────────────────────────────
 
     // 1. Charge: repulsion only — nodes push each other away
@@ -573,10 +575,9 @@ export default function GraphViewer3D({
     Graph.d3Force("cluster", null);
     Graph.d3Force("bounds", null);
 
-    // 3. Weak inward gravity: pulls all nodes toward the origin so the
-    //    graph stays compact and doesn't drift off into empty space.
-    //    The sqrt falloff makes it essentially zero at the centre and
-    //    stronger only when a node wanders far away.
+    // 3. Volume-aware gravity: pulls nodes toward origin.
+    //    Heavy (large nodeSize) nodes feel less pull so they drift
+    //    outward naturally rather than piling up at the centre.
     Graph.d3Force("gravity", (alpha) => {
       const strength = alpha * (settingsRef.current?.gravity ?? 0.015);
       for (const node of graphData.nodes) {
@@ -585,14 +586,75 @@ export default function GraphViewer3D({
         const ny = node.y || 0;
         const nz = node.z || 0;
         const dist = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
-        const pull = strength * Math.sqrt(dist);
+        // Heavier nodes (larger nodeSize) get less pull — they spread outward
+        const massFactor = 1 / Math.max(1, (node.nodeSize || 5) * 0.25);
+        const pull = strength * Math.sqrt(dist) * massFactor;
         node.vx = (node.vx || 0) - (nx / dist) * pull;
         node.vy = (node.vy || 0) - (ny / dist) * pull;
         node.vz = (node.vz || 0) - (nz / dist) * pull;
       }
     });
 
-    // 4. Collision: prevent node overlap
+    // 4. Spiral + cluster-size gravity: big clusters → centre,
+    //    small clusters → farther out. Also adds tangential swirl.
+    //    Pre-compute cluster sizes once, then use both in the force.
+    const clusterSizes = new Map();
+    for (const n of graphData.nodes) {
+      if (n.clusterId < 0) continue;
+      clusterSizes.set(n.clusterId, (clusterSizes.get(n.clusterId) || 0) + 1);
+    }
+    let maxCluster = 1;
+    for (const sz of clusterSizes.values()) if (sz > maxCluster) maxCluster = sz;
+
+    Graph.d3Force("spiral", (alpha) => {
+      if (alpha < 0.003) return;
+      const centroids = new Map();
+      const counts = new Map();
+      for (const n of graphData.nodes) {
+        if (n.clusterId < 0) continue;
+        if (!centroids.has(n.clusterId)) {
+          centroids.set(n.clusterId, { x: 0, y: 0, z: 0 });
+          counts.set(n.clusterId, 0);
+        }
+        const c = centroids.get(n.clusterId);
+        c.x += n.x || 0; c.y += n.y || 0; c.z += n.z || 0;
+        counts.set(n.clusterId, counts.get(n.clusterId) + 1);
+      }
+      for (const [cid, c] of centroids) {
+        const cnt = counts.get(cid);
+        c.x /= cnt; c.y /= cnt; c.z /= cnt;
+      }
+
+      const swirl = alpha * 0.06;
+      const clusterCentrePull = alpha * 0.05;
+
+      for (const n of graphData.nodes) {
+        if (n.clusterId < 0 || n.fx !== undefined) continue;
+        const c = centroids.get(n.clusterId);
+        if (!c) continue;
+        const csz = clusterSizes.get(n.clusterId) || 1;
+
+        // --- Cluster-size gravity: bigger clusters pulled toward origin ---
+        // sizeRatio near 1 for the biggest cluster, near 0 for tiny ones.
+        // Bigger cluster → stronger pull toward origin.
+        const sizeRatio = csz / maxCluster;
+        const pullToOrigin = clusterCentrePull * sizeRatio;
+        const cx = c.x || 0, cy = c.y || 0, cz = c.z || 0;
+        const cDist = Math.sqrt(cx * cx + cy * cy + cz * cz) || 1;
+        n.vx = (n.vx || 0) - (cx / cDist) * pullToOrigin * Math.sqrt(cDist);
+        n.vy = (n.vy || 0) - (cy / cDist) * pullToOrigin * Math.sqrt(cDist);
+        n.vz = (n.vz || 0) - (cz / cDist) * pullToOrigin * Math.sqrt(cDist);
+
+        // --- Tangential swirl around cluster centroid (in XZ plane) ---
+        const rx = (n.x || 0) - c.x;
+        const rz = (n.z || 0) - c.z;
+        const len = Math.sqrt(rx * rx + rz * rz) || 1;
+        n.vx = (n.vx || 0) + (-rz / len) * swirl;
+        n.vz = (n.vz || 0) + (rx / len) * swirl;
+      }
+    });
+
+    // 5. Collision: prevent node overlap
     import("d3-force-3d").then((d3) => {
       if (!graphRef.current || effectCleanup.cancelled) return;
       Graph.d3Force(
@@ -602,12 +664,13 @@ export default function GraphViewer3D({
     }).catch(() => {});
 
     // Feed data to graph
+    setGraphReady(false);
     Graph.graphData(graphData);
 
-    // ── Fly camera to focusNodeId after layout settles ──
-    if (focusNodeId) {
-      Graph.onEngineStop(() => {
-        if (!graphRef.current || userInteractedRef.current) return;
+    // Mark graph ready + optional fly-to-focus when simulation settles
+    Graph.onEngineStop(() => {
+      setGraphReady(true);
+      if (focusNodeId && graphRef.current && !userInteractedRef.current) {
         const target = graphData.nodes.find(
           (n) => n.id === focusNodeId || n.label === focusNodeId
         );
@@ -618,8 +681,8 @@ export default function GraphViewer3D({
           { x, y, z },
           1200
         );
-      });
-    }
+      }
+    });
 
     // ── Scene enhancements: lighting, fog, starfield ──
     setTimeout(() => {
@@ -715,9 +778,10 @@ export default function GraphViewer3D({
     window.addEventListener("keydown", onCtrlDown);
     window.addEventListener("keyup", onCtrlUp);
 
-    // ── WASD keyboard navigation ──
-    const MOVE_SPEED = 4;
+    // ── WASD spaceship-style controls (momentum + drift) ──
+    const THRUST = 0.6;
     const SHIFT_MULTIPLIER = 3;
+    const FRICTION = 0.97;  // how fast velocity decays (1 = no friction)
 
     const onKeyDown = (e) => {
       const key = e.key.toLowerCase();
@@ -733,6 +797,7 @@ export default function GraphViewer3D({
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
 
+    const vel = cameraVelRef.current;
     const wasdTick = () => {
       if (effectCleanup.cancelled) return;
       if (!graphRef.current) {
@@ -740,27 +805,33 @@ export default function GraphViewer3D({
         return;
       }
       const keys = keysRef.current;
-      if (keys.size > 0) {
-        userInteractedRef.current = true;
-        const camera = graphRef.current.camera?.();
-        const T = window.__THREE__;
-        if (camera && T) {
-          const speed = keys.has("shift") ? MOVE_SPEED * SHIFT_MULTIPLIER : MOVE_SPEED;
-          const forward = new T.Vector3();
-          camera.getWorldDirection(forward);
-          const right = new T.Vector3();
-          right.crossVectors(forward, camera.up).normalize();
-          const up = new T.Vector3(0, 1, 0);
+      const camera = graphRef.current.camera?.();
+      const T = window.__THREE__;
+      if (camera && T) {
+        const thrust = keys.has("shift") ? THRUST * SHIFT_MULTIPLIER : THRUST;
+        const forward = new T.Vector3();
+        camera.getWorldDirection(forward);
+        const right = new T.Vector3();
+        right.crossVectors(forward, camera.up).normalize();
+        const up = new T.Vector3(0, 1, 0);
+
+        // Accumulate thrust while keys are held
+        if (keys.has("w"))              { vel.x += forward.x * thrust; vel.y += forward.y * thrust; vel.z += forward.z * thrust; }
+        if (keys.has("s"))              { vel.x -= forward.x * thrust; vel.y -= forward.y * thrust; vel.z -= forward.z * thrust; }
+        if (keys.has("a"))              { vel.x -= right.x * thrust;   vel.y -= right.y * thrust;   vel.z -= right.z * thrust; }
+        if (keys.has("d"))              { vel.x += right.x * thrust;   vel.y += right.y * thrust;   vel.z += right.z * thrust; }
+        if (keys.has("q") || keys.has(" ")) { vel.x += up.x * thrust; vel.y += up.y * thrust; vel.z += up.z * thrust; }
+        if (keys.has("e"))              { vel.x -= up.x * thrust;      vel.y -= up.y * thrust;      vel.z -= up.z * thrust; }
+
+        if (keys.size > 0) userInteractedRef.current = true;
+
+        // Apply velocity and friction (ship drifts after releasing keys)
+        const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
+        if (speed > 0.01) {
           const pos = graphRef.current.cameraPosition();
-          let dx = 0, dy = 0, dz = 0;
-          if (keys.has("w")) { dx += forward.x * speed; dy += forward.y * speed; dz += forward.z * speed; }
-          if (keys.has("s")) { dx -= forward.x * speed; dy -= forward.y * speed; dz -= forward.z * speed; }
-          if (keys.has("a")) { dx -= right.x * speed; dy -= right.y * speed; dz -= right.z * speed; }
-          if (keys.has("d")) { dx += right.x * speed; dy += right.y * speed; dz += right.z * speed; }
-          if (keys.has("q") || keys.has(" ")) { dx += up.x * speed; dy += up.y * speed; dz += up.z * speed; }
-          if (keys.has("e")) { dx -= up.x * speed; dy -= up.y * speed; dz -= up.z * speed; }
-          graphRef.current.cameraPosition({ x: pos.x + dx, y: pos.y + dy, z: pos.z + dz });
+          graphRef.current.cameraPosition({ x: pos.x + vel.x, y: pos.y + vel.y, z: pos.z + vel.z });
         }
+        vel.x *= FRICTION; vel.y *= FRICTION; vel.z *= FRICTION;
       }
       wasdFrameRef.current = requestAnimationFrame(wasdTick);
     };
@@ -861,6 +932,55 @@ export default function GraphViewer3D({
         style={{ width: "100%", height: "100%" }}
         tabIndex={0}
       />
+
+      {/* Premium loading overlay */}
+      {!graphReady && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#050816]">
+          {/* Animated concentric rings */}
+          <div className="relative h-24 w-24">
+            <div
+              className="absolute inset-0 rounded-full border border-indigo-500/30"
+              style={{ animation: "graphPulseRing 2.4s ease-in-out infinite" }}
+            />
+            <div
+              className="absolute inset-2 rounded-full border border-indigo-400/40"
+              style={{ animation: "graphPulseRing 2.4s ease-in-out 0.3s infinite" }}
+            />
+            <div
+              className="absolute inset-4 rounded-full border border-indigo-300/50"
+              style={{ animation: "graphPulseRing 2.4s ease-in-out 0.6s infinite" }}
+            />
+            {/* Centre dot */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="h-2 w-2 rounded-full bg-indigo-400"
+                style={{ animation: "graphDotPulse 1.6s ease-in-out infinite" }}
+              />
+            </div>
+          </div>
+          <p
+            className="mt-5 text-xs font-medium tracking-widest text-indigo-300/70 uppercase"
+            style={{ animation: "graphTextFade 2s ease-in-out infinite" }}
+          >
+            Rendering graph
+          </p>
+          {/* Inline keyframes */}
+          <style>{`
+            @keyframes graphPulseRing {
+              0%, 100% { transform: scale(1); opacity: 0.3; }
+              50%      { transform: scale(1.15); opacity: 0.7; }
+            }
+            @keyframes graphDotPulse {
+              0%, 100% { transform: scale(1); opacity: 0.6; }
+              50%      { transform: scale(1.8); opacity: 1; }
+            }
+            @keyframes graphTextFade {
+              0%, 100% { opacity: 0.4; }
+              50%      { opacity: 0.9; }
+            }
+          `}</style>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="absolute bottom-3 left-3 rounded-lg border border-card-border bg-card/90 px-3 py-2 backdrop-blur-sm">
