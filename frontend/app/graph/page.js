@@ -57,6 +57,15 @@ function GraphExplorerPage() {
     const a = searchParams?.get('address');
     return a ? [a] : [];
   });
+
+  // "Applied" filter state — only updated on Apply button click, drives fetchGraph
+  const [appliedNodeLimit, setAppliedNodeLimit] = useState(200);
+  const [appliedCoinFilter, setAppliedCoinFilter] = useState("");
+  const [appliedCenterAddresses, setAppliedCenterAddresses] = useState(() => {
+    const a = searchParams?.get('address');
+    return a ? [a] : [];
+  });
+
   const [addressInput, setAddressInput] = useState("");
   const [volumeThreshold, setVolumeThreshold] = useState(0);
   const [colorMode, setColorMode] = useState("risk"); // "risk" | "cluster"
@@ -115,9 +124,9 @@ function GraphExplorerPage() {
     setError(null);
     try {
       const data = await getGraph({
-        limit: nodeLimit,
-        coinType: coinFilter || undefined,
-        addresses: centerAddresses.length > 0 ? centerAddresses : undefined,
+        limit: appliedNodeLimit,
+        coinType: appliedCoinFilter || undefined,
+        addresses: appliedCenterAddresses.length > 0 ? appliedCenterAddresses : undefined,
       });
       setElements(data.elements);
       setGraphInfo(data);
@@ -126,15 +135,15 @@ function GraphExplorerPage() {
     } finally {
       setLoading(false);
     }
-  }, [nodeLimit, coinFilter, centerAddresses]);
+  }, [appliedNodeLimit, appliedCoinFilter, appliedCenterAddresses]);
 
   useEffect(() => {
     fetchGraph();
   }, [fetchGraph]);
 
-  const handleNodeClick = (address) => {
+  const handleNodeClick = useCallback((address) => {
     router.push(`/wallet/${encodeURIComponent(address)}`);
-  };
+  }, [router]);
 
   const findPath = async () => {
     if (!pathFrom.trim() || !pathTo.trim()) return;
@@ -252,7 +261,11 @@ function GraphExplorerPage() {
               className="w-16 rounded border border-card-border bg-background px-2 py-1 text-xs focus:border-accent focus:outline-none"
             />
             <button
-              onClick={fetchGraph}
+              onClick={() => {
+                setAppliedNodeLimit(nodeLimit);
+                setAppliedCoinFilter(coinFilter);
+                setAppliedCenterAddresses(centerAddresses);
+              }}
               className="rounded bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent-hover"
             >
               Apply

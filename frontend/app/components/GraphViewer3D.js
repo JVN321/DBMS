@@ -221,7 +221,11 @@ export default function GraphViewer3D({
   const userInteractedRef = useRef(false); // persists across graph recreation — prevents orbit restart
   const settingsRef = useRef(null); // always-current settings for RAF closures
   const hoveredNodeRef = useRef(null); // tracks hovered node for middle-click
+  const onNodeClickRef = useRef(onNodeClick); // ref so the graph init effect doesn't re-run on callback identity changes
   const [ForceGraph3DModule, setForceGraph3DModule] = useState(null);
+
+  // Keep onNodeClickRef current on every render
+  onNodeClickRef.current = onNodeClick;
 
   // ── Merged visual settings with defaults ──
   const settings = useMemo(() => ({
@@ -552,8 +556,8 @@ export default function GraphViewer3D({
 
       // ── Interaction ──
       .onNodeClick((node) => {
-        if (onNodeClick && node.nodeType === "Wallet") {
-          onNodeClick(node.label || node.id);
+        if (onNodeClickRef.current && node.nodeType === "Wallet") {
+          onNodeClickRef.current(node.label || node.id);
         }
       })
       .onNodeHover((node) => {
@@ -868,7 +872,7 @@ export default function GraphViewer3D({
         graphRef.current = null;
       }
     };
-  }, [ForceGraph3DModule, graphData, onNodeClick, animateTime, layoutMode, reduceAnimations, focusNodeId]);
+  }, [ForceGraph3DModule, graphData, animateTime, layoutMode, reduceAnimations, focusNodeId]);
 
   // ── Live settings updates — update the existing graph without full recreation ──
   useEffect(() => {
