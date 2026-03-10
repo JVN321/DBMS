@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Filter, Route, AlertCircle, Box, Grid2x2, Palette, Timer, Crosshair, Zap, Settings } from "lucide-react";
+import { Filter, Route, AlertCircle, Box, Grid2x2, Palette, Crosshair, Zap, Settings } from "lucide-react";
 
 // Dynamic import — force-graph uses canvas/D3 APIs not available server-side
 const GraphViewer = dynamic(() => import("../components/GraphViewer"), { ssr: false });
@@ -51,7 +51,6 @@ function GraphExplorerPage() {
   const [volumeThreshold, setVolumeThreshold] = useState(0);
   const [clusterSizeThreshold, setClusterSizeThreshold] = useState(0);
   const [colorMode, setColorMode] = useState("risk"); // "risk" | "cluster"
-  const [animateTime, setAnimateTime] = useState(false);
   const [layoutMode, setLayoutMode] = useState("force"); // "force" | "fraud"
   const [reduceAnimations, setReduceAnimations] = useState(false);
   const [showVizSettings, setShowVizSettings] = useState(false);
@@ -138,8 +137,9 @@ function GraphExplorerPage() {
     try {
       const data = await getTransactionPath(pathFrom.trim(), pathTo.trim());
       if (data.found) {
-        setElements(data.elements);
-        setHighlightPath(data.pathNodeIds);
+        // Extract wallet addresses from the path result nodes
+        const pathAddresses = (data.elements?.nodes || []).map(n => n.data?.address || n.data?.label || n.data?.id);
+        setHighlightPath(pathAddresses);
       } else {
         setPathError(data.message);
       }
@@ -309,22 +309,6 @@ function GraphExplorerPage() {
             </div>
           )}
 
-          {/* Temporal animation toggle (3D mode) */}
-          {viewMode === "3d" && (
-            <div className="flex items-center gap-1.5 border-l border-card-border pl-2">
-              <Timer size={12} className="text-muted" />
-              <button
-                onClick={() => setAnimateTime(!animateTime)}
-                className={`rounded border px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                  animateTime
-                    ? "border-accent bg-accent/20 text-accent"
-                    : "border-card-border bg-background text-muted hover:text-foreground"
-                }`}
-              >
-                {animateTime ? "Timeline ▶" : "Timeline"}
-              </button>
-            </div>
-          )}
 
           {/* Layout mode toggle (3D mode) */}
           {viewMode === "3d" && (
@@ -539,7 +523,6 @@ function GraphExplorerPage() {
               volumeThreshold={volumeThreshold}
               clusterSizeThreshold={clusterSizeThreshold}
               colorMode={colorMode}
-              animateTime={animateTime}
               layoutMode={layoutMode}
               reduceAnimations={reduceAnimations}
               vizSettings={vizSettings}

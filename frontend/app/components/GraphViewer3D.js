@@ -205,6 +205,8 @@ export default function GraphViewer3D({
   const hoveredNodeRef = useRef(null);
   const onNodeClickRef = useRef(onNodeClick);
   const cameraVelRef = useRef({ x: 0, y: 0, z: 0 });
+  const fpsRef = useRef({ frames: 0, lastTime: performance.now() });
+  const [fps, setFps] = useState(0);
   const [ForceGraph3DModule, setForceGraph3DModule] = useState(null);
   const [graphReady, setGraphReady] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
@@ -545,7 +547,7 @@ export default function GraphViewer3D({
       .d3AlphaDecay(0.028)
       .d3VelocityDecay(0.35)
       .warmupTicks(80)
-      .cooldownTicks(200)
+      .cooldownTicks(Infinity)
 
       // ── Interaction ──
       .onNodeClick((node) => {
@@ -826,6 +828,15 @@ export default function GraphViewer3D({
     const vel = cameraVelRef.current;
     const wasdTick = () => {
       if (effectCleanup.cancelled) return;
+      // FPS measurement
+      const fpsData = fpsRef.current;
+      fpsData.frames++;
+      const now = performance.now();
+      if (now - fpsData.lastTime >= 1000) {
+        setFps(fpsData.frames);
+        fpsData.frames = 0;
+        fpsData.lastTime = now;
+      }
       if (!graphRef.current) {
         wasdFrameRef.current = requestAnimationFrame(wasdTick);
         return;
@@ -1095,7 +1106,7 @@ export default function GraphViewer3D({
         </div>
       </div>
 
-      {/* Controls hint */}
+      {/* Controls hint + FPS */}
       <div className="absolute bottom-3 right-3 rounded-lg border border-card-border bg-card/90 px-3 py-2 backdrop-blur-sm">
         <div className="text-[10px] text-muted leading-relaxed">
           <span className="font-medium text-foreground">Navigate:</span>{" "}
@@ -1116,6 +1127,9 @@ export default function GraphViewer3D({
             {" · "}
             <kbd className="rounded border border-card-border bg-background px-0.5 text-[8px] font-mono">Shift</kbd> faster · Space = up
           </span>
+        </div>
+        <div className="mt-1 border-t border-card-border pt-1 text-right">
+          <span className="font-mono text-[9px] text-muted/60">{fps} fps</span>
         </div>
       </div>
     </div>
