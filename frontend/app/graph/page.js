@@ -49,6 +49,7 @@ function GraphExplorerPage() {
 
   const [addressInput, setAddressInput] = useState("");
   const [volumeThreshold, setVolumeThreshold] = useState(0);
+  const [clusterSizeThreshold, setClusterSizeThreshold] = useState(0);
   const [colorMode, setColorMode] = useState("risk"); // "risk" | "cluster"
   const [animateTime, setAnimateTime] = useState(false);
   const [layoutMode, setLayoutMode] = useState("force"); // "force" | "fraud"
@@ -272,6 +273,25 @@ function GraphExplorerPage() {
               />
               <span className="w-8 text-right text-[10px] font-mono text-muted">
                 {(volumeThreshold * 100).toFixed(0)}%
+              </span>
+            </div>
+          )}
+
+          {/* Min cluster size threshold (3D mode) */}
+          {viewMode === "3d" && (
+            <div className="flex items-center gap-1.5 border-l border-card-border pl-2">
+              <span className="text-[10px] text-muted whitespace-nowrap">Min cluster</span>
+              <input
+                type="range"
+                min="0"
+                max="20"
+                step="1"
+                value={clusterSizeThreshold}
+                onChange={(e) => setClusterSizeThreshold(parseInt(e.target.value, 10))}
+                className="h-1 w-20 cursor-pointer accent-accent"
+              />
+              <span className="w-6 text-right text-[10px] font-mono text-muted">
+                {clusterSizeThreshold === 0 ? "off" : clusterSizeThreshold}
               </span>
             </div>
           )}
@@ -517,6 +537,7 @@ function GraphExplorerPage() {
               highlightPath={highlightPath}
               highlightedNodes={centerAddresses}
               volumeThreshold={volumeThreshold}
+              clusterSizeThreshold={clusterSizeThreshold}
               colorMode={colorMode}
               animateTime={animateTime}
               layoutMode={layoutMode}

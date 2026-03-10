@@ -183,6 +183,7 @@ export default function GraphViewer3D({
   highlightedNodes = [],
   highlightPath = [],
   volumeThreshold = 0,
+  clusterSizeThreshold = 0,
   colorMode = "risk",
   animateTime = false,
   layoutMode = "force",
@@ -284,6 +285,14 @@ export default function GraphViewer3D({
     }
     const edgeWidthScale = maxLogAmt > 0 ? 4 / maxLogAmt : 1;
 
+    // Pre-count cluster sizes across ALL nodes (before any filtering)
+    // so the threshold is based on raw cluster membership, not post-filter counts.
+    const rawClusterSizes = new Map();
+    for (const n of elements.nodes || []) {
+      const cid = n.data?.clusterId ?? -1;
+      if (cid >= 0) rawClusterSizes.set(cid, (rawClusterSizes.get(cid) || 0) + 1);
+    }
+
     for (const n of elements.nodes || []) {
       const normVol = parseFloat(n.data?.normalizedVolume ?? 0);
       const totalVol = parseFloat(n.data?.totalVolume ?? n.data?.value_lossless ?? 0);
@@ -293,6 +302,7 @@ export default function GraphViewer3D({
       const fraudPattern = n.data?.fraudPattern || "normal";
 
       if (volumeThreshold > 0 && normVol < volumeThreshold) continue;
+      if (clusterSizeThreshold > 0 && clusterId >= 0 && (rawClusterSizes.get(clusterId) || 0) < clusterSizeThreshold) continue;
 
       const isHighlighted =
         highlightedNodes.includes(n.data.id) || highlightedNodes.includes(n.data.label);
@@ -367,7 +377,7 @@ export default function GraphViewer3D({
     }
 
     return { nodes, links };
-  }, [elements, highlightedNodes, highlightPath, volumeThreshold, colorMode]);
+  }, [elements, highlightedNodes, highlightPath, volumeThreshold, clusterSizeThreshold, colorMode]);
 
   // ═══════════════════════════════════════════════════════════════════
   // 3D Graph init & update
