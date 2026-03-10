@@ -61,6 +61,7 @@ function GraphExplorerPage() {
     particleCount: 4,
     orbitSpeed: 0.0008,
     gravity: 0.015,
+    clusterMinNodes: 1,
   });
 
   // URL-derived focus node (camera flies to this address on load)
@@ -444,9 +445,23 @@ function GraphExplorerPage() {
                     />
                   </div>
 
+                  {/* Cluster Min Nodes */}
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-muted">Cluster Min Nodes</label>
+                      <span className="text-[10px] font-mono text-muted">{vizSettings.clusterMinNodes ?? 1}</span>
+                    </div>
+                    <input
+                      type="range" min="1" max="20" step="1"
+                      value={vizSettings.clusterMinNodes ?? 1}
+                      onChange={(e) => setVizSettings(prev => ({ ...prev, clusterMinNodes: parseInt(e.target.value) }))}
+                      className="mt-0.5 h-1 w-full cursor-pointer accent-accent"
+                    />
+                  </div>
+
                   {/* Reset button */}
                   <button
-                    onClick={() => setVizSettings({ fogDensity: 0.0015, particleSpeed: 0.003, glowIntensity: 1.0, particleCount: 4, orbitSpeed: 0.0008, gravity: 0.015 })}
+                    onClick={() => setVizSettings({ fogDensity: 0.0015, particleSpeed: 0.003, glowIntensity: 1.0, particleCount: 4, orbitSpeed: 0.0008, gravity: 0.015, clusterMinNodes: 1 })}
                     className="mt-1 w-full rounded border border-card-border bg-background px-2 py-1 text-[10px] font-medium text-muted hover:text-foreground transition-colors"
                   >
                     Reset Defaults
