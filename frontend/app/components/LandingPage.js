@@ -668,10 +668,7 @@ export default function LandingPage() {
                 <span
                   key={i}
                   className="shader-letter"
-                  style={{
-                    opacity: i < visibleCount ? 1 : 0,
-                    transform: i < visibleCount ? "translateY(0)" : "translateY(-20px)",
-                  }}
+                  style={{ opacity: i < visibleCount ? 1 : 0 }}
                 >
                   {ch}
                 </span>
@@ -686,12 +683,17 @@ export default function LandingPage() {
               </span>
               <span className="shader-intro-line" />
             </div>
-            {visibleCount === 7 && redProgress < 0.05 && (
-              <div className="shader-scroll-hint">
-                <span className="shader-scroll-text">SCROLL</span>
-                <div className="shader-scroll-arrow" />
-              </div>
-            )}
+            <div
+              className="shader-scroll-hint"
+              style={{
+                opacity: Math.max(0, 1 - redProgress * 40),
+                transition: 'opacity 0.3s ease',
+                pointerEvents: 'none',
+              }}
+            >
+              <span className="shader-scroll-text">SCROLL</span>
+              <div className="shader-scroll-arrow" />
+            </div>
           </div>
           <div className="shader-intro-scanlines" aria-hidden="true" />
         </div>

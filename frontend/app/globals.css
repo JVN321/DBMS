@@ -406,7 +406,7 @@ body {
 /* Individual letter spans */
 .shader-letter {
   display: inline-block;
-  transition: opacity 0.35s ease, transform 0.35s ease;
+  transition: opacity 0.4s ease;
 }
 .shader-intro-sub {
   display: flex;
@@ -512,7 +512,7 @@ body {
 .cyber-network-bg canvas {
   width: 100% !important;
   height: 100% !important;
-  opacity: 0.9;
+  opacity: 0.35;
 }
 
 /* ── Scanline overlay ── */
