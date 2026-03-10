@@ -204,7 +204,6 @@ export default function GraphViewer3D({
   const hoveredNodeRef = useRef(null);
   const onNodeClickRef = useRef(onNodeClick);
   const cameraVelRef = useRef({ x: 0, y: 0, z: 0 });
-  const lodObjectsRef = useRef([]);
   const [ForceGraph3DModule, setForceGraph3DModule] = useState(null);
   const [graphReady, setGraphReady] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
@@ -234,7 +233,6 @@ export default function GraphViewer3D({
     particleCount: vizSettings.particleCount ?? 4,
     orbitSpeed: vizSettings.orbitSpeed ?? 0.0008,
     gravity: vizSettings.gravity ?? 0.015,
-    clusterMinNodes: vizSettings.clusterMinNodes ?? 1,
   }), [
     vizSettings.fogDensity,
     vizSettings.particleSpeed,
@@ -242,7 +240,6 @@ export default function GraphViewer3D({
     vizSettings.particleCount,
     vizSettings.orbitSpeed,
     vizSettings.gravity,
-    vizSettings.clusterMinNodes,
   ]);
 
   // Dynamic import of 3d-force-graph + three
@@ -343,22 +340,6 @@ export default function GraphViewer3D({
       nodeMap.set(n.data.id, node);
     }
 
-    // ── Cluster size threshold: hide nodes in clusters smaller than the min ──
-    const _clusterMin = vizSettings.clusterMinNodes ?? 1;
-    if (_clusterMin > 1) {
-      const _csMap = new Map();
-      for (const n of nodes) {
-        if (n.clusterId >= 0)
-          _csMap.set(n.clusterId, (_csMap.get(n.clusterId) || 0) + 1);
-      }
-      for (let i = nodes.length - 1; i >= 0; i--) {
-        if (nodes[i].clusterId >= 0 && (_csMap.get(nodes[i].clusterId) || 0) < _clusterMin) {
-          nodeMap.delete(nodes[i].id);
-          nodes.splice(i, 1);
-        }
-      }
-    }
-
     for (const e of elements.edges || []) {
       if (!nodeMap.has(e.data.source) || !nodeMap.has(e.data.target)) continue;
 
@@ -386,7 +367,7 @@ export default function GraphViewer3D({
     }
 
     return { nodes, links };
-  }, [elements, highlightedNodes, highlightPath, volumeThreshold, colorMode, vizSettings.clusterMinNodes]);
+  }, [elements, highlightedNodes, highlightPath, volumeThreshold, colorMode]);
 
   // ═══════════════════════════════════════════════════════════════════
   // 3D Graph init & update
@@ -410,7 +391,6 @@ export default function GraphViewer3D({
     if (orbitRef.current) { cancelAnimationFrame(orbitRef.current); orbitRef.current = null; }
     if (wasdFrameRef.current) { cancelAnimationFrame(wasdFrameRef.current); wasdFrameRef.current = null; }
     sceneExtrasRef.current = [];
-    lodObjectsRef.current = [];
 
     // ── Fraud layout mode: fix positions ──
     if (layoutMode === "fraud") {
@@ -444,11 +424,7 @@ export default function GraphViewer3D({
       .linkCurvature(0.25)
       .linkCurveRotation(0)
 
-      // ── Custom node rendering: LOD sphere + glow ──
-      // LOD levels:
-      //   0   –  349 : high-quality sphere (adaptive segments) + glow sprite
-      //   350 –  749 : 4-segment cheap sphere, no glow (major triangle savings)
-      //   750+       : flat billboard sprite (single quad — cheapest possible)
+      // ── Custom node rendering: sphere + glow sprite ──
       .nodeThreeObject((node) => {
         const T = window.__THREE__;
         if (!T) return undefined;
@@ -457,9 +433,7 @@ export default function GraphViewer3D({
         const { r, g, b } = parseColor(node.color);
         const col = new T.Color(r / 255, g / 255, b / 255);
 
-        // ── Level 0: close / high-quality ──
-        const segs = s >= 8 ? 12 : s >= 5 ? 8 : 6;
-        const geo = new T.SphereGeometry(s * 0.5, segs, segs);
+        const geo = new T.SphereGeometry(s * 0.5, 16, 16);
         const mat = new T.MeshStandardMaterial({
           color: col,
           emissive: col,
@@ -471,47 +445,28 @@ export default function GraphViewer3D({
         });
         const sphere = new T.Mesh(geo, mat);
 
-        let closeObj = sphere;
         if (!_reduceAnim && settingsRef.current.glowIntensity > 0) {
           const glowScale = 1 + node.normalizedVolume * 3 * settingsRef.current.glowIntensity;
-          const glowCanvas = createGlowTexture(
+          const canvas = createGlowTexture(
             node.color,
             node.glowIntensity * settingsRef.current.glowIntensity
           );
-          const tex = new T.CanvasTexture(glowCanvas);
+          const tex = new T.CanvasTexture(canvas);
           const spriteMat = new T.SpriteMaterial({
-            map: tex, transparent: true,
-            blending: T.AdditiveBlending, depthWrite: false,
+            map: tex,
+            transparent: true,
+            blending: T.AdditiveBlending,
+            depthWrite: false,
           });
           const sprite = new T.Sprite(spriteMat);
           sprite.scale.set(s * 2.2 * glowScale, s * 2.2 * glowScale, 1);
+
           const group = new T.Group();
           group.add(sphere);
           group.add(sprite);
-          closeObj = group;
+          return group;
         }
-
-        // ── Level 1: medium distance — cheap 4-segment sphere, no glow ──
-        const geoLow = new T.SphereGeometry(s * 0.5, 4, 4);
-        const matLow = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8 });
-        const sphereLow = new T.Mesh(geoLow, matLow);
-
-        // ── Level 2: far — single billboard sprite (1 quad, near-zero cost) ──
-        const dotCanvas = createGlowTexture(node.color, 0.9, 32);
-        const dotTex = new T.CanvasTexture(dotCanvas);
-        const dotMat = new T.SpriteMaterial({
-          map: dotTex, transparent: true,
-          blending: T.AdditiveBlending, depthWrite: false,
-        });
-        const dot = new T.Sprite(dotMat);
-        dot.scale.set(s * 1.1, s * 1.1, 1);
-
-        const lod = new T.LOD();
-        lod.addLevel(closeObj, 0);
-        lod.addLevel(sphereLow, 350);
-        lod.addLevel(dot, 750);
-        lodObjectsRef.current.push(lod);
-        return lod;
+        return sphere;
       })
 
       // ── Node tooltip ──
@@ -893,10 +848,6 @@ export default function GraphViewer3D({
           graphRef.current.cameraPosition({ x: pos.x + vel.x, y: pos.y + vel.y, z: pos.z + vel.z });
         }
         vel.x *= FRICTION; vel.y *= FRICTION; vel.z *= FRICTION;
-
-        // Update LOD visibility based on current camera distance
-        const lods = lodObjectsRef.current;
-        for (let i = 0; i < lods.length; i++) lods[i].update(camera);
       }
       wasdFrameRef.current = requestAnimationFrame(wasdTick);
     };
