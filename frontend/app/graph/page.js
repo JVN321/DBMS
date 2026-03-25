@@ -1,39 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Filter, Route, AlertCircle, Box, Grid2x2, Palette, Timer, Crosshair, Zap, Settings } from "lucide-react";
-import LoadingSpinner from "../components/LoadingSpinner";
+import { Filter, Route, AlertCircle, Box, Grid2x2, Palette, Crosshair, Zap, Settings } from "lucide-react";
 
 // Dynamic import — force-graph uses canvas/D3 APIs not available server-side
-const GraphViewer = dynamic(() => import("../components/GraphViewer"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-full items-center justify-center">
-      <LoadingSpinner text="Loading graph..." />
-    </div>
-  ),
-});
+const GraphViewer = dynamic(() => import("../components/GraphViewer"), { ssr: false });
 import { getGraph, getTransactionPath, getMyPreferences, saveMyPreferences } from "@/lib/api";
 import { useAuth } from "@/lib/authContext";
 
 // Dynamic import for 3D viewer (not SSR-compatible due to WebGL/Three.js)
-const GraphViewer3D = dynamic(() => import("../components/GraphViewer3D"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-full items-center justify-center">
-      <LoadingSpinner text="Loading 3D engine..." />
-    </div>
-  ),
-});
+const GraphViewer3D = dynamic(() => import("../components/GraphViewer3D"), { ssr: false });
 
 export default function GraphExplorerPageWrapper() {
-  return (
-    <Suspense fallback={<LoadingSpinner text="Loading graph explorer..." />}>
-      <GraphExplorerPage />
-    </Suspense>
-  );
+  return <GraphExplorerPage />;
 }
 
 function GraphExplorerPage() {
@@ -41,7 +22,7 @@ function GraphExplorerPage() {
   const searchParams = useSearchParams();
   const { user, selectedDatasetId } = useAuth();
   const [elements, setElements] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [graphInfo, setGraphInfo] = useState(null);
   const [highlightPath, setHighlightPath] = useState([]);
@@ -68,8 +49,8 @@ function GraphExplorerPage() {
 
   const [addressInput, setAddressInput] = useState("");
   const [volumeThreshold, setVolumeThreshold] = useState(0);
+  const [clusterSizeThreshold, setClusterSizeThreshold] = useState(0);
   const [colorMode, setColorMode] = useState("risk"); // "risk" | "cluster"
-  const [animateTime, setAnimateTime] = useState(false);
   const [layoutMode, setLayoutMode] = useState("force"); // "force" | "fraud"
   const [reduceAnimations, setReduceAnimations] = useState(false);
   const [showVizSettings, setShowVizSettings] = useState(false);
@@ -79,6 +60,7 @@ function GraphExplorerPage() {
     glowIntensity: 1.0,
     particleCount: 4,
     orbitSpeed: 0.0008,
+    gravity: 0.015,
   });
 
   // URL-derived focus node (camera flies to this address on load)
@@ -155,8 +137,9 @@ function GraphExplorerPage() {
     try {
       const data = await getTransactionPath(pathFrom.trim(), pathTo.trim());
       if (data.found) {
-        setElements(data.elements);
-        setHighlightPath(data.pathNodeIds);
+        // Extract wallet addresses from the path result nodes
+        const pathAddresses = (data.elements?.nodes || []).map(n => n.data?.address || n.data?.label || n.data?.id);
+        setHighlightPath(pathAddresses);
       } else {
         setPathError(data.message);
       }
@@ -294,6 +277,25 @@ function GraphExplorerPage() {
             </div>
           )}
 
+          {/* Min cluster size threshold (3D mode) */}
+          {viewMode === "3d" && (
+            <div className="flex items-center gap-1.5 border-l border-card-border pl-2">
+              <span className="text-[10px] text-muted whitespace-nowrap">Min cluster</span>
+              <input
+                type="range"
+                min="0"
+                max="20"
+                step="1"
+                value={clusterSizeThreshold}
+                onChange={(e) => setClusterSizeThreshold(parseInt(e.target.value, 10))}
+                className="h-1 w-20 cursor-pointer accent-accent"
+              />
+              <span className="w-6 text-right text-[10px] font-mono text-muted">
+                {clusterSizeThreshold === 0 ? "off" : clusterSizeThreshold}
+              </span>
+            </div>
+          )}
+
           {/* Color mode toggle (3D mode) */}
           {viewMode === "3d" && (
             <div className="flex items-center gap-1.5 border-l border-card-border pl-2">
@@ -307,22 +309,6 @@ function GraphExplorerPage() {
             </div>
           )}
 
-          {/* Temporal animation toggle (3D mode) */}
-          {viewMode === "3d" && (
-            <div className="flex items-center gap-1.5 border-l border-card-border pl-2">
-              <Timer size={12} className="text-muted" />
-              <button
-                onClick={() => setAnimateTime(!animateTime)}
-                className={`rounded border px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                  animateTime
-                    ? "border-accent bg-accent/20 text-accent"
-                    : "border-card-border bg-background text-muted hover:text-foreground"
-                }`}
-              >
-                {animateTime ? "Timeline ▶" : "Timeline"}
-              </button>
-            </div>
-          )}
 
           {/* Layout mode toggle (3D mode) */}
           {viewMode === "3d" && (
@@ -448,9 +434,23 @@ function GraphExplorerPage() {
                     />
                   </div>
 
+                  {/* Gravity */}
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-muted">Gravity</label>
+                      <span className="text-[10px] font-mono text-muted">{(vizSettings.gravity ?? 0.015).toFixed(3)}</span>
+                    </div>
+                    <input
+                      type="range" min="0" max="0.08" step="0.001"
+                      value={vizSettings.gravity ?? 0.015}
+                      onChange={(e) => setVizSettings(prev => ({ ...prev, gravity: parseFloat(e.target.value) }))}
+                      className="mt-0.5 h-1 w-full cursor-pointer accent-accent"
+                    />
+                  </div>
+
                   {/* Reset button */}
                   <button
-                    onClick={() => setVizSettings({ fogDensity: 0.0015, particleSpeed: 0.003, glowIntensity: 1.0, particleCount: 4, orbitSpeed: 0.0008 })}
+                    onClick={() => setVizSettings({ fogDensity: 0.0015, particleSpeed: 0.003, glowIntensity: 1.0, particleCount: 4, orbitSpeed: 0.0008, gravity: 0.015 })}
                     className="mt-1 w-full rounded border border-card-border bg-background px-2 py-1 text-[10px] font-medium text-muted hover:text-foreground transition-colors"
                   >
                     Reset Defaults
@@ -497,9 +497,11 @@ function GraphExplorerPage() {
 
       {/* Graph */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        {loading ? (
-          <div className="flex h-full items-center justify-center">
-            <LoadingSpinner text="Loading graph data..." />
+        {loading && !elements ? (
+          <div className="flex h-full items-center justify-center bg-[#050816]">
+            <p className="text-xs font-medium tracking-widest text-indigo-300/50 uppercase animate-pulse">
+              Fetching data
+            </p>
           </div>
         ) : error ? (
           <div className="flex h-full items-center justify-center">
@@ -519,8 +521,8 @@ function GraphExplorerPage() {
               highlightPath={highlightPath}
               highlightedNodes={centerAddresses}
               volumeThreshold={volumeThreshold}
+              clusterSizeThreshold={clusterSizeThreshold}
               colorMode={colorMode}
-              animateTime={animateTime}
               layoutMode={layoutMode}
               reduceAnimations={reduceAnimations}
               vizSettings={vizSettings}

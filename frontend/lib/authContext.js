@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [selectedDatasetId, setSelectedDatasetId] = useState('shared');
   const [userDatasets, setUserDatasets] = useState([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Load token from localStorage on mount
   useEffect(() => {
@@ -175,6 +176,8 @@ export function AuthProvider({ children }) {
     setSelectedDatasetId,
     userDatasets,
     reloadUserDatasets,
+    sidebarCollapsed,
+    setSidebarCollapsed,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

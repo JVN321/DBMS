@@ -17,6 +17,8 @@ import {
   BarChart3,
   Database,
   ChevronDown,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/authContext";
@@ -40,10 +42,12 @@ const adminNavItems = [
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout, isAuthenticated, loading, isAdmin, selectedDatasetId, setSelectedDatasetId, userDatasets } = useAuth();
+  const { user, logout, isAuthenticated, loading, isAdmin, selectedDatasetId, setSelectedDatasetId, userDatasets, sidebarCollapsed, setSidebarCollapsed } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [datasetPickerOpen, setDatasetPickerOpen] = useState(false);
+
+  const collapsed = sidebarCollapsed;
 
   const showDatasetPicker = pathname?.startsWith('/graph') || pathname?.startsWith('/suspicious');
 
@@ -82,39 +86,53 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-sidebar-border bg-sidebar-bg transition-transform lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar-bg transition-all duration-200 lg:translate-x-0 ${
+          collapsed ? "w-16" : "w-64"
+        } ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
+        {/* Collapse toggle (desktop) */}
+        <button
+          onClick={() => setSidebarCollapsed(!collapsed)}
+          className="absolute -right-3 top-5 z-50 hidden lg:flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-bg text-muted hover:text-foreground transition-colors"
+        >
+          {collapsed ? <ChevronsRight size={12} /> : <ChevronsLeft size={12} />}
+        </button>
+
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
+        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6 overflow-hidden">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent">
             <ShieldAlert size={18} className="text-white" />
           </div>
-          <div>
-            <h1 className="text-sm font-bold tracking-tight text-foreground">
-              DBMS
-            </h1>
-            <p className="text-[10px] text-muted">Distributed Blockchain Monitoring</p>
-          </div>
+          {!collapsed && (
+            <div>
+              <h1 className="text-sm font-bold tracking-tight text-foreground">
+                DBMS
+              </h1>
+              <p className="text-[10px] text-muted">Distributed Blockchain Monitoring</p>
+            </div>
+          )}
         </div>
 
         {/* User Info */}
         {user && (
-          <div className="border-b border-sidebar-border px-4 py-4 space-y-2">
-            <p className="text-xs text-muted uppercase tracking-wide">Logged in as</p>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-accent/20 flex items-center justify-center">
+          <div className="border-b border-sidebar-border px-4 py-4 space-y-2 overflow-hidden">
+            {!collapsed && <p className="text-xs text-muted uppercase tracking-wide">Logged in as</p>}
+            <div className={`flex items-center ${collapsed ? "justify-center" : "gap-2"}`}>
+              <div className="h-8 w-8 shrink-0 rounded-full bg-accent/20 flex items-center justify-center">
                 <span className="text-xs font-bold text-accent">
                   {user.username?.charAt(0).toUpperCase()}
                 </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {user.username}
-                </p>
-                <p className="text-xs text-muted capitalize">{user.role}</p>
-              </div>
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {user.username}
+                  </p>
+                  <p className="text-xs text-muted capitalize">{user.role}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -132,22 +150,23 @@ export default function Sidebar() {
               <Link
                 key={href}
                 href={href}
-                onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                onClick={() => { setMobileOpen(false); setSidebarCollapsed(true); }}
+                title={collapsed ? label : undefined}
+                className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   active
                     ? "bg-accent/10 text-accent"
                     : "text-muted hover:bg-white/5 hover:text-foreground"
                 }`}
               >
                 <Icon size={18} />
-                {label}
+                {!collapsed && label}
               </Link>
             );
           })}
         </nav>
 
-        {/* Dataset picker — only on /graph and /suspicious */}
-        {showDatasetPicker && (
+        {/* Dataset picker — only on /graph and /suspicious, hidden when collapsed */}
+        {showDatasetPicker && !collapsed && (
           <div className="border-t border-sidebar-border px-3 py-3 relative">
             <p className="mb-1.5 text-[10px] uppercase tracking-wide text-muted flex items-center gap-1">
               <Database size={10} /> Dataset
@@ -203,7 +222,7 @@ export default function Sidebar() {
 
         {/* Search or Logout */}
         <div className="border-t border-sidebar-border p-4 space-y-2">
-          {!isAdmin && (
+          {!isAdmin && !collapsed && (
             <Link
               href="/graph"
               className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs text-muted hover:text-foreground transition"
@@ -217,17 +236,18 @@ export default function Sidebar() {
           <button
             onClick={handleLogout}
             disabled={loggingOut}
-            className="w-full flex items-center gap-2 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger hover:bg-danger/20 transition disabled:opacity-50"
+            className={`w-full flex items-center ${collapsed ? "justify-center" : "gap-2"} rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger hover:bg-danger/20 transition disabled:opacity-50`}
+            title={collapsed ? "Logout" : undefined}
           >
             {loggingOut ? (
               <>
                 <span className="animate-spin">⟳</span>
-                Logging out...
+                {!collapsed && "Logging out..."}
               </>
             ) : (
               <>
                 <LogOut size={14} />
-                Logout
+                {!collapsed && "Logout"}
               </>
             )}
           </button>
