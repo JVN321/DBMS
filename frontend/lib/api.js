@@ -251,3 +251,11 @@ export async function getUserDatasets() {
 export async function deleteUserDataset(id) {
   return request(`/user/datasets/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
+
+export async function getAdminDatasets() {
+  return request('/admin/datasets');
+}
+
+export async function deleteAdminDataset(id) {
+  return request(`/admin/datasets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
