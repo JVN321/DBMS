@@ -13,8 +13,14 @@ import { useAuth } from "@/lib/authContext";
 // Dynamic import for 3D viewer (not SSR-compatible due to WebGL/Three.js)
 const GraphViewer3D = dynamic(() => import("../components/GraphViewer3D"), { ssr: false });
 
+import { Suspense } from 'react';
+
 export default function GraphExplorerPageWrapper() {
-  return <GraphExplorerPage />;
+  return (
+    <Suspense fallback={<div className="p-6 lg:p-8"><p className="text-muted text-sm">Loading graph explorer...</p></div>}>
+      <GraphExplorerPage />
+    </Suspense>
+  );
 }
 
 function GraphExplorerPage() {

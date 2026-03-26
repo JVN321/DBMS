@@ -1,15 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/lib/authContext';
 import { withAuth } from '@/lib/withAuth';
-import { UserPlus } from 'lucide-react';
 import UserTable from '@/app/components/UserTable';
 import ConfirmDialog from '@/app/components/ConfirmDialog';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
+import { getUsers, updateUser, banUser, deleteUser } from '@/lib/api';
 
 function AdminUsersPage() {
-  const token = localStorage.getItem('auth_token');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,21 +28,11 @@ function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/users`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users);
-      } else {
-        setError('Failed to load users');
-      }
+      setError(null);
+      const data = await getUsers();
+      setUsers(data.users || []);
     } catch (err) {
-      setError('Error loading users');
+      setError(err.message || 'Error loading users');
     } finally {
       setLoading(false);
     }
@@ -60,26 +48,12 @@ function AdminUsersPage() {
 
     setActionLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/users/${editDialog.user.username}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ role: editForm.role }),
-        }
-      );
-
-      if (response.ok) {
-        setEditDialog({ isOpen: false, user: null });
-        fetchUsers();
-      } else {
-        setError('Failed to update user');
-      }
+      setError(null);
+      await updateUser(editDialog.user.username, { role: editForm.role });
+      setEditDialog({ isOpen: false, user: null });
+      await fetchUsers();
     } catch (err) {
-      setError('Error updating user');
+      setError(err.message || 'Error updating user');
     } finally {
       setActionLoading(false);
     }
@@ -94,26 +68,12 @@ function AdminUsersPage() {
 
     setActionLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/users/${banDialog.user.username}/ban`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ is_banned: !banDialog.user.is_banned }),
-        }
-      );
-
-      if (response.ok) {
-        setBanDialog({ isOpen: false, user: null });
-        fetchUsers();
-      } else {
-        setError('Failed to update user ban status');
-      }
+      setError(null);
+      await banUser(banDialog.user.username, !banDialog.user.is_banned);
+      setBanDialog({ isOpen: false, user: null });
+      await fetchUsers();
     } catch (err) {
-      setError('Error updating user');
+      setError(err.message || 'Error updating user');
     } finally {
       setActionLoading(false);
     }
@@ -128,22 +88,12 @@ function AdminUsersPage() {
 
     setActionLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/users/${deleteDialog.user.username}`,
-        {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.ok) {
-        setDeleteDialog({ isOpen: false, user: null });
-        fetchUsers();
-      } else {
-        setError('Failed to delete user');
-      }
+      setError(null);
+      await deleteUser(deleteDialog.user.username);
+      setDeleteDialog({ isOpen: false, user: null });
+      await fetchUsers();
     } catch (err) {
-      setError('Error deleting user');
+      setError(err.message || 'Error deleting user');
     } finally {
       setActionLoading(false);
     }

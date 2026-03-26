@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { withAuth } from '@/lib/withAuth';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { getLogs } from '@/lib/api';
 
 function AdminLogsPage() {
-  const token = localStorage.getItem('auth_token');
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,22 +21,12 @@ function AdminLogsPage() {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/logs?skip=${skip}&limit=${limit}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setLogs(data.logs);
-        setTotal(data.total);
-      } else {
-        setError('Failed to load logs');
-      }
+      setError(null);
+      const data = await getLogs({ skip, limit });
+      setLogs(data.logs);
+      setTotal(data.total);
     } catch (err) {
-      setError('Error loading logs');
+      setError(err.message || 'Error loading logs');
     } finally {
       setLoading(false);
     }

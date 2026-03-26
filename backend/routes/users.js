@@ -14,8 +14,8 @@ export default async function userRoutes(fastify) {
           `MATCH (u:User)
           RETURN u
           ORDER BY u.created_at DESC
-          SKIP $skip
-          LIMIT $limit`,
+          SKIP toInteger($skip)
+          LIMIT toInteger($limit)`,
           { skip: parseInt(skip), limit: parseInt(limit) }
         );
 

@@ -27,11 +27,13 @@ function withAlpha(hslColor, alpha) {
   return hslColor.replace(/^hsl\(/, "hsla(").replace(/\)$/, `, ${alpha})`);
 }
 
-export default function GraphViewer({
-  elements,
+const EMPTY_ARRAY = [];
+
+export default function GraphViewer({ 
+  elements, 
   onNodeClick,
-  highlightedNodes = [],
-  highlightPath = [],
+  highlightedNodes = EMPTY_ARRAY,
+  highlightPath = EMPTY_ARRAY,
   style,
 }) {
   const containerRef = useRef(null);

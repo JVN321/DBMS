@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
@@ -60,6 +60,8 @@ export default function WalletDetailPage({ params }) {
       setTimeout(() => setCopiedKey(null), 1500);
     });
   };
+
+  const highlightedNodesArray = useMemo(() => [decodedAddress], [decodedAddress]);
 
   useEffect(() => {
     setLoading(true);
@@ -200,7 +202,7 @@ export default function WalletDetailPage({ params }) {
                 onNodeClick={(addr) =>
                   router.push(`/wallet/${encodeURIComponent(addr)}`)
                 }
-                highlightedNodes={[decodedAddress]}
+                highlightedNodes={highlightedNodesArray}
                 focusNodeId={decodedAddress}
                 style={{ height: "400px" }}
               />
@@ -210,7 +212,7 @@ export default function WalletDetailPage({ params }) {
                 onNodeClick={(addr) =>
                   router.push(`/wallet/${encodeURIComponent(addr)}`)
                 }
-                highlightedNodes={[decodedAddress]}
+                highlightedNodes={highlightedNodesArray}
                 style={{ height: "350px" }}
               />
             )}

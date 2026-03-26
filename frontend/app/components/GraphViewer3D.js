@@ -177,18 +177,21 @@ function layoutCluster(nodeList, cx, cy, cz, posMap) {
 // Component
 // ═══════════════════════════════════════════════════════════════════════
 
+const EMPTY_ARRAY = [];
+const EMPTY_OBJECT = {};
+
 export default function GraphViewer3D({
   elements,
   onNodeClick,
-  highlightedNodes = [],
-  highlightPath = [],
+  highlightedNodes = EMPTY_ARRAY,
+  highlightPath = EMPTY_ARRAY,
   volumeThreshold = 0,
   clusterSizeThreshold = 0,
   colorMode = "risk",
   animateTime = false,
   layoutMode = "force",
   reduceAnimations = false,
-  vizSettings = {},
+  vizSettings = EMPTY_OBJECT,
   focusNodeId = null,
   style,
 }) {
@@ -206,6 +209,7 @@ export default function GraphViewer3D({
   const onNodeClickRef = useRef(onNodeClick);
   const cameraVelRef = useRef({ x: 0, y: 0, z: 0 });
   const fpsRef = useRef({ frames: 0, lastTime: performance.now() });
+  const readyTimeoutRef = useRef(null);
   const [fps, setFps] = useState(0);
   const [ForceGraph3DModule, setForceGraph3DModule] = useState(null);
   const [graphReady, setGraphReady] = useState(false);
@@ -402,6 +406,10 @@ export default function GraphViewer3D({
     if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null; }
     if (orbitRef.current) { cancelAnimationFrame(orbitRef.current); orbitRef.current = null; }
     if (wasdFrameRef.current) { cancelAnimationFrame(wasdFrameRef.current); wasdFrameRef.current = null; }
+    if (readyTimeoutRef.current) {
+      clearTimeout(readyTimeoutRef.current);
+      readyTimeoutRef.current = null;
+    }
     sceneExtrasRef.current = [];
 
     // ── Fraud layout mode: fix positions ──
@@ -547,7 +555,7 @@ export default function GraphViewer3D({
       .d3AlphaDecay(0.028)
       .d3VelocityDecay(0.35)
       .warmupTicks(80)
-      .cooldownTicks(Infinity)
+      .cooldownTicks(220)
 
       // ── Interaction ──
       .onNodeClick((node) => {
@@ -698,19 +706,16 @@ export default function GraphViewer3D({
     // Mark graph ready + optional fly-to-focus when simulation settles
     Graph.onEngineStop(() => {
       setGraphReady(true);
-      if (focusNodeId && graphRef.current && !userInteractedRef.current) {
-        const target = graphData.nodes.find(
-          (n) => n.id === focusNodeId || n.label === focusNodeId
-        );
-        if (!target) return;
-        const { x = 0, y = 0, z = 0 } = target;
-        graphRef.current.cameraPosition(
-          { x: x + 200, y: y + 50, z: z + 300 },
-          { x, y, z },
-          1200
-        );
+      if (readyTimeoutRef.current) {
+        clearTimeout(readyTimeoutRef.current);
+        readyTimeoutRef.current = null;
       }
     });
+
+    // Safety fallback: never keep the interaction-blocking loading overlay forever.
+    readyTimeoutRef.current = setTimeout(() => {
+      if (!effectCleanup.cancelled) setGraphReady(true);
+    }, 400);
 
     // ── Scene enhancements: lighting, fog, starfield ──
     setTimeout(() => {
@@ -758,37 +763,10 @@ export default function GraphViewer3D({
 
     graphRef.current = Graph;
 
-    // ── Camera auto-orbit ──
-    let orbitAngle = 0;
+    // ── User interaction tracking ──
     const onInteract = () => { userInteractedRef.current = true; };
     container.addEventListener("pointerdown", onInteract);
     container.addEventListener("wheel", onInteract);
-
-    if (!_reduceAnim) {
-      const orbitTick = () => {
-        if (effectCleanup.cancelled || !graphRef.current) return;
-        if (!userInteractedRef.current) {
-          orbitAngle += settingsRef.current.orbitSpeed;
-          const r = 500;
-          try {
-            graphRef.current.cameraPosition(
-              {
-                x: r * Math.sin(orbitAngle),
-                y: 50 * Math.sin(orbitAngle * 0.5),
-                z: r * Math.cos(orbitAngle),
-              },
-              { x: 0, y: 0, z: 0 }
-            );
-          } catch (_) { return; }
-        }
-        orbitRef.current = requestAnimationFrame(orbitTick);
-      };
-      setTimeout(() => {
-        if (!effectCleanup.cancelled) {
-          orbitRef.current = requestAnimationFrame(orbitTick);
-        }
-      }, 3000);
-    }
 
     // ── Ctrl key → enable node drag ──
     const onCtrlDown = (e) => {
@@ -906,6 +884,10 @@ export default function GraphViewer3D({
     // ── Cleanup ──
     return () => {
       effectCleanup.cancelled = true;
+      if (readyTimeoutRef.current) {
+        clearTimeout(readyTimeoutRef.current);
+        readyTimeoutRef.current = null;
+      }
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("keydown", onCtrlDown);
@@ -927,7 +909,30 @@ export default function GraphViewer3D({
         graphRef.current = null;
       }
     };
-  }, [ForceGraph3DModule, graphData, animateTime, layoutMode, reduceAnimations, focusNodeId]);
+  }, [ForceGraph3DModule, graphData, animateTime, layoutMode, reduceAnimations]);
+
+  // Focus camera on a specific node without recreating the graph instance.
+  // We only want to trigger this if focusNodeId changes AFTER the initial layout.
+  useEffect(() => {
+    if (!focusNodeId || !graphRef.current || !graphReady) return;
+    const target = graphData.nodes.find(
+      (n) => n.id === focusNodeId || n.label === focusNodeId
+    );
+    if (!target) return;
+
+    const { x = 0, y = 0, z = 0 } = target;
+    try {
+      if (!userInteractedRef.current) {
+        graphRef.current.cameraPosition(
+          { x: x + 200, y: y + 50, z: z + 300 },
+          { x, y, z },
+          900
+        );
+      }
+    } catch (_) {
+      // Ignore camera transition failures when graph is still initializing.
+    }
+  }, [focusNodeId, graphReady, graphData]);
 
   // ── Live settings updates (no full recreation) ──
   const prevGravityRef = useRef(null);
@@ -1022,7 +1027,7 @@ export default function GraphViewer3D({
 
             {/* Dark tint + pulsing rings — hidden during the fade-out phase */}
             {!fadeOut && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#050816]/65 pointer-events-auto">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#050816]/65 pointer-events-none">
                 <div className="relative h-24 w-24">
                   <div
                     className="absolute inset-0 rounded-full border border-indigo-500/30"

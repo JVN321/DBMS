@@ -28,6 +28,7 @@ const userNavItems = [
   { href: "/user", label: "Dashboard", icon: LayoutDashboard },
   { href: "/graph", label: "Graph Explorer", icon: Network },
   { href: "/suspicious", label: "Suspicious", icon: ShieldAlert },
+  { href: "/upload", label: "Upload Data", icon: Upload },
 ];
 
 const adminNavItems = [

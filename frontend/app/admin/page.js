@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/authContext';
 import { withAuth } from '@/lib/withAuth';
-import { Users, FileText, BarChart3, Settings, ShieldAlert } from 'lucide-react';
+import { Users, FileText, BarChart3, Settings, ShieldAlert, UserCheck, UserX, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
+import { getSystemStats } from '@/lib/api';
 
 function AdminDashboardPage() {
   const { user } = useAuth();
@@ -19,18 +20,12 @@ function AdminDashboardPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/logs/stats/system`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
+      setLoading(true);
+      const data = await getSystemStats();
+      if (data && data.stats) {
         setStats(data.stats);
+      } else {
+        setError('Failed to load system statistics');
       }
     } catch (err) {
       console.error('Failed to fetch stats:', err);
@@ -62,22 +57,22 @@ function AdminDashboardPage() {
           <StatCard
             label="Total Users"
             value={stats.total_users}
-            icon="👥"
+            icon={<Users size={28} className="text-accent" />}
           />
           <StatCard
             label="Active Users"
             value={stats.active_users}
-            icon="✅"
+            icon={<UserCheck size={28} className="text-success" />}
           />
           <StatCard
             label="Banned Users"
             value={stats.banned_users}
-            icon="🚫"
+            icon={<UserX size={28} className="text-danger" />}
           />
           <StatCard
             label="Total Wallets"
             value={stats.total_wallets}
-            icon="💰"
+            icon={<Wallet size={28} className="text-warning" />}
           />
         </div>
       ) : null}
@@ -185,7 +180,9 @@ function StatCard({ label, value, icon }) {
           <p className="text-xs text-muted uppercase tracking-wide">{label}</p>
           <p className="mt-1 text-2xl font-bold">{value}</p>
         </div>
-        <span className="text-3xl">{icon}</span>
+        <div className="flex items-center justify-center h-12 w-12 rounded-full bg-background border border-card-border">
+          {icon}
+        </div>
       </div>
     </div>
   );

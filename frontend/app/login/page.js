@@ -219,7 +219,7 @@ export default function LoginPage() {
                 {loading ? '// Authenticating...' : '// Access System'}
               </button>
               <p className="text-[10px] text-zinc-700 text-center font-mono">
-                // demo &nbsp;→&nbsp; admin / password123
+                // demo &nbsp;→&nbsp; admin / admin123
               </p>
             </form>
           )}

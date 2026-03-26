@@ -69,8 +69,8 @@ export default async function logsRoutes(fastify) {
         `${query}
         RETURN l
         ORDER BY l.timestamp DESC
-        SKIP $skip
-        LIMIT $limit`,
+        SKIP toInteger($skip)
+        LIMIT toInteger($limit)`,
         params
       );
 
