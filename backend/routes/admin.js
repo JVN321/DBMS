@@ -1,7 +1,9 @@
 import { getSession } from '../neo4j/driver.js';
+import { adminMiddleware } from '../middleware/authMiddleware.js';
+import { logEvent } from '../utils/logger.js';
 
 export default async function adminRoutes(fastify) {
-  fastify.delete('/clear-database', async (request, reply) => {
+  fastify.delete('/clear-database', { onRequest: [adminMiddleware] }, async (request, reply) => {
     const session = getSession();
     try {
       // Delete all relationships first, then all nodes
@@ -11,6 +13,8 @@ export default async function adminRoutes(fastify) {
       const count = (deleted && typeof deleted.toNumber === 'function')
         ? deleted.toNumber()
         : Number(deleted) || 0;
+
+      await logEvent(request.user.username, 'clear_database', `Cleared complete entire database (${count} nodes deleted)`, request.ip);
 
       return { success: true, nodesDeleted: count };
     } finally {

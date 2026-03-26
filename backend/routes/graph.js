@@ -2,6 +2,7 @@ import { getSession } from '../neo4j/driver.js';
 import { neo4jToCytoscape } from '../services/graph-transform.js';
 import { bulkRiskScores } from '../services/detection.js';
 import { detectCommunities } from '../services/community.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 
 // ── Fraud pattern classification (runs on already-fetched subgraph) ──
 function classifyFraudPatterns(elements) {
@@ -75,7 +76,7 @@ function classifyFraudPatterns(elements) {
 }
 
 export default async function graphRoutes(fastify) {
-  fastify.get('/graph', async (request, reply) => {
+  fastify.get('/graph', { onRequest: [authMiddleware] }, async (request, reply) => {
     const limit = parseInt(request.query.limit || '200', 10);
     const coinType = request.query.coin_type || null;
     const address = request.query.address || null;

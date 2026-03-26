@@ -74,6 +74,14 @@ export async function getUser(username) {
   return request(`/users/${encodeURIComponent(username)}`);
 }
 
+export async function createUser(userData) {
+  return request('/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
+  });
+}
+
 export async function updateUser(username, updates) {
   return request(`/users/${encodeURIComponent(username)}`, {
     method: 'PUT',

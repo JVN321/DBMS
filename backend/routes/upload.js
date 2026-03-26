@@ -2,6 +2,7 @@ import { parseCSV, parseJSON, detectFormat } from '../ingestion/parser.js';
 import { ingestTransactions } from '../services/ingestion.js';
 import { adminMiddleware, authMiddleware } from '../middleware/authMiddleware.js';
 import { getSession } from '../neo4j/driver.js';
+import { logEvent } from '../utils/logger.js';
 
 export default async function uploadRoutes(fastify) {
   // ── Admin: upload to shared (main) dataset ─────────────────────────────────
@@ -39,6 +40,8 @@ export default async function uploadRoutes(fastify) {
     }
 
     const ingestionResult = await ingestTransactions(parseResult.transactions, 'shared');
+
+    await logEvent(request.user.username, 'upload_shared', `Uploaded ${parseResult.transactions.length} txs to shared dataset from ${filename}`, request.ip);
 
     return {
       success: true,
@@ -110,6 +113,8 @@ export default async function uploadRoutes(fastify) {
     }
 
     const ingestionResult = await ingestTransactions(parseResult.transactions, datasetId);
+
+    await logEvent(username, 'upload_private', `Uploaded ${parseResult.transactions.length} txs to private dataset '${datasetName}' from ${filename}`, request.ip);
 
     return {
       success: true,

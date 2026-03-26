@@ -1,7 +1,76 @@
+import bcrypt from 'bcrypt';
 import { getSession } from '../neo4j/driver.js';
 import { adminMiddleware, authMiddleware } from '../middleware/authMiddleware.js';
+import { logEvent } from '../utils/logger.js';
 
 export default async function userRoutes(fastify) {
+  // Create user (admin only)
+  fastify.post(
+    '/users',
+    { onRequest: [adminMiddleware] },
+    async (request, reply) => {
+      const { username, email, password, role } = request.body;
+
+      if (!username || !email || !password) {
+        return reply.code(400).send({ error: 'Missing required fields: username, email, password' });
+      }
+
+      if (password.length < 6) {
+        return reply.code(400).send({ error: 'Password must be at least 6 characters' });
+      }
+
+      const userRole = role === 'admin' ? 'admin' : 'user';
+      const session = getSession();
+
+      try {
+        const existingUser = await session.run(
+          'MATCH (u:User) WHERE u.username = $username OR u.email = $email RETURN u',
+          { username, email }
+        );
+
+        if (existingUser.records.length > 0) {
+          return reply.code(409).send({ error: 'Username or email already exists' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const createdAt = new Date().toISOString();
+
+        const result = await session.run(
+          `CREATE (u:User {
+            username: $username,
+            email: $email,
+            password: $hashedPassword,
+            role: $role,
+            created_at: $createdAt,
+            is_banned: false
+          })
+          RETURN u`,
+          { username, email, hashedPassword, role: userRole, createdAt }
+        );
+
+        const u = result.records[0]?.get('u')?.properties;
+
+        await logEvent(request.user.username, 'create_user', `Created user: ${username}`, request.ip);
+
+        return reply.code(201).send({
+          message: 'User created successfully',
+          user: {
+            username: u.username,
+            email: u.email,
+            role: u.role,
+            created_at: u.created_at,
+            is_banned: u.is_banned,
+          },
+        });
+      } catch (err) {
+        fastify.log.error(err);
+        return reply.code(500).send({ error: 'Failed to create user' });
+      } finally {
+        await session.close();
+      }
+    }
+  );
+
   // Get all users (admin only)
   fastify.get(
     '/users',
@@ -124,6 +193,8 @@ export default async function userRoutes(fastify) {
 
         const u = result.records[0]?.get('u')?.properties;
 
+        await logEvent(request.user.username, 'update_user', `Updated user: ${username}`, request.ip);
+
         return reply.code(200).send({
           message: 'User updated',
           user: {
@@ -169,6 +240,8 @@ export default async function userRoutes(fastify) {
         const u = result.records[0]?.get('u')?.properties;
         const action = is_banned ? 'banned' : 'unbanned';
 
+        await logEvent(request.user.username, action, `${action} user: ${username}`, request.ip);
+
         return reply.code(200).send({
           message: `User ${action}`,
           user: {
@@ -208,6 +281,8 @@ export default async function userRoutes(fastify) {
         if (deleted === 0) {
           return reply.code(404).send({ error: 'User not found' });
         }
+
+        await logEvent(request.user.username, 'delete_user', `Deleted user: ${username}`, request.ip);
 
         return reply.code(200).send({ message: 'User deleted' });
       } catch (err) {
@@ -258,7 +333,8 @@ export default async function userRoutes(fastify) {
         await session.run(
           'MATCH (u:User {username: $username}) SET u.preferences = $prefs',
           { username, prefs: JSON.stringify(preferences) }
-        );
+        );        
+        await logEvent(username, 'update_preferences', 'Updated user preferences', request.ip);
         return reply.code(200).send({ ok: true });
       } catch (err) {
         fastify.log.error(err);

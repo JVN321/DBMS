@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import { getSession } from '../neo4j/driver.js';
 import { generateToken, verifyToken } from '../utils/jwt.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import { logEvent } from '../utils/logger.js';
 
 export default async function authRoutes(fastify) {
   // Register new user
@@ -51,6 +52,8 @@ export default async function authRoutes(fastify) {
       }
 
       const token = generateToken(user);
+      
+      await logEvent(user.username, 'register', 'Registered a new account', request.ip);
 
       return reply.code(201).send({
         message: 'User registered successfully',
@@ -102,6 +105,8 @@ export default async function authRoutes(fastify) {
       }
 
       const token = generateToken(user);
+      
+      await logEvent(user.username, 'login', 'User logged in', request.ip);
 
       return reply.code(200).send({
         message: 'Login successful',
@@ -186,6 +191,7 @@ export default async function authRoutes(fastify) {
 
   // Logout (just tells frontend to clear token)
   fastify.post('/auth/logout', { onRequest: [authMiddleware] }, async (request, reply) => {
-    return reply.code(200).send({ message: 'Logged out successfully' });
+    await logEvent(request.user.username, 'logout', 'User logged out', request.ip);
+    return reply.code(200).send({ message: 'Logged out successfully' });        
   });
 }

@@ -1,5 +1,6 @@
 import { getSession } from '../neo4j/driver.js';
 import { adminMiddleware } from '../middleware/authMiddleware.js';
+import { logEvent } from '../utils/logger.js';
 
 // Default settings
 const DEFAULT_SETTINGS = {
@@ -126,6 +127,8 @@ export default async function settingsRoutes(fastify) {
       );
 
       const settings = result.records[0]?.get('s')?.properties;
+
+      await logEvent(request.user.username, 'update_settings', 'Updated system settings', request.ip);
 
       return reply.code(200).send({
         message: 'Settings updated',

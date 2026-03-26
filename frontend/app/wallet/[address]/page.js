@@ -49,7 +49,7 @@ export default function WalletDetailPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [graphElements, setGraphElements] = useState(null);
-  const [view3D, setView3D] = useState(false);
+  const [view3D, setView3D] = useState(true);
   const [page, setPage] = useState(0);
   const [copiedKey, setCopiedKey] = useState(null);
   const pageSize = 20;

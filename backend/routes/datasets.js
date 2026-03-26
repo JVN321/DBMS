@@ -1,5 +1,6 @@
 import { getSession } from '../neo4j/driver.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import { logEvent } from '../utils/logger.js';
 
 export default async function datasetRoutes(fastify) {
   // ── List the authenticated user's datasets ─────────────────────────────────
@@ -62,6 +63,8 @@ export default async function datasetRoutes(fastify) {
         'MATCH (d:UserDataset {id: $id}) DELETE d',
         { id: datasetId }
       );
+
+      await logEvent(username, 'delete_dataset', `Deleted dataset: ${datasetId}`, request.ip);
 
       return { success: true };
     } finally {
