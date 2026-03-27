@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   RefreshCw,
@@ -17,6 +17,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import SearchBar from "../components/SearchBar";
 import { getSuspicious, getRiskRanking } from "@/lib/api";
 import { useAuth } from "@/lib/authContext";
+import { withAuth } from "@/lib/withAuth";
 import { TrendingUp } from "lucide-react";
 
 const DETECTION_TYPES = [
@@ -58,7 +59,7 @@ const DETECTION_TYPES = [
   },
 ];
 
-export default function SuspiciousPage() {
+function SuspiciousPage() {
   const router = useRouter();
   const { selectedDatasetId } = useAuth();
   const [activeType, setActiveType] = useState("circular");
@@ -67,6 +68,8 @@ export default function SuspiciousPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [threshold, setThreshold] = useState(3);
+  const [sortKey, setSortKey] = useState("");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   useEffect(() => {
     setLoading(true);
@@ -83,6 +86,39 @@ export default function SuspiciousPage() {
         .finally(() => setLoading(false));
     }
   }, [activeType, threshold, selectedDatasetId]);
+
+  const getSortOptions = (type) => {
+    switch (type) {
+      case "risk_ranking": return [{label: "Risk Score", value: "riskScore"}, {label: "Fan-Out", value: "outDegree"}, {label: "Fan-In", value: "inDegree"}, {label: "Cycles", value: "cycles"}];
+      case "fanout": return [{label: "Out-Degree", value: "outDegree"}, {label: "Total Sent", value: "totalSent"}];
+      case "fanin": return [{label: "In-Degree", value: "inDegree"}, {label: "Total Received", value: "totalReceived"}];
+      case "cluster": return [{label: "Total Degree", value: "totalDegree"}, {label: "In-Degree", value: "inDegree"}, {label: "Out-Degree", value: "outDegree"}];
+      case "circular": return [{label: "Cycle Depth", value: "depth"}];
+      case "rapid": return [{label: "Amount 1", value: "amount1"}, {label: "Amount 2", value: "amount2"}];
+      default: return [];
+    }
+  };
+
+  const availableSortOptions = useMemo(() => getSortOptions(activeType), [activeType]);
+  const currentSortKey = sortKey && availableSortOptions.find(o => o.value === sortKey) ? sortKey : (availableSortOptions[0]?.value || "");
+
+  const sortedData = useMemo(() => {
+    let data = activeType === "risk_ranking" ? rankingData : results;
+    if (!data) return [];
+    
+    return [...data].sort((a, b) => {
+      if (!currentSortKey) return 0;
+      let valA = a[currentSortKey];
+      let valB = b[currentSortKey];
+      
+      if (valA === undefined) valA = 0;
+      if (valB === undefined) valB = 0;
+
+      if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+      if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [activeType, rankingData, results, currentSortKey, sortOrder]);
 
   return (
     <div className="p-6 lg:p-8">
@@ -117,28 +153,52 @@ export default function SuspiciousPage() {
         ))}
       </div>
 
-      {/* Active type description + threshold */}
+      {/* Active type description + threshold & sorting */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-card-border bg-card p-4">
         <div>
           <p className="text-sm font-medium">
             {DETECTION_TYPES.find((t) => t.key === activeType)?.description}
           </p>
         </div>
-        {(activeType === "fanout" ||
-          activeType === "fanin" ||
-          activeType === "cluster") && (
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-muted">Threshold:</label>
-            <input
-              type="number"
-              min={2}
-              max={100}
-              value={threshold}
-              onChange={(e) => setThreshold(parseInt(e.target.value) || 3)}
-              className="w-16 rounded border border-card-border bg-background px-2 py-1 text-xs focus:border-accent focus:outline-none"
-            />
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-4">
+          {(activeType === "fanout" ||
+            activeType === "fanin" ||
+            activeType === "cluster") && (
+            <div className="flex items-center gap-2 border-r border-card-border pr-4">
+              <label className="text-xs text-muted">Threshold:</label>
+              <input
+                type="number"
+                min={2}
+                max={100}
+                value={threshold}
+                onChange={(e) => setThreshold(parseInt(e.target.value) || 3)}
+                className="w-16 rounded border border-card-border bg-background px-2 py-1 text-xs focus:border-accent focus:outline-none"
+              />
+            </div>
+          )}
+          
+          {availableSortOptions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted">Sort By:</label>
+              <select
+                value={currentSortKey}
+                onChange={(e) => setSortKey(e.target.value)}
+                className="rounded border border-card-border bg-background px-2 py-1 text-xs focus:border-accent focus:outline-none"
+              >
+                {availableSortOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => setSortOrder(o => o === "asc" ? "desc" : "asc")}
+                className="rounded border border-card-border bg-background px-2 py-1 text-xs text-muted hover:text-foreground focus:border-accent focus:outline-none"
+                title="Toggle sort order"
+              >
+                {sortOrder === "asc" ? "↑ Asc" : "↓ Desc"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Results */}
@@ -169,7 +229,7 @@ export default function SuspiciousPage() {
                 </tr>
               </thead>
               <tbody>
-                {rankingData.map((item, i) => {
+                {sortedData.map((item, i) => {
                   const risk = item.riskScore;
                   const riskHue = Math.max(0, Math.round(120 - risk * 1.2));
                   const riskColor = `hsl(${riskHue}, 85%, 60%)`;
@@ -270,7 +330,7 @@ export default function SuspiciousPage() {
               </tr>
             </thead>
             <tbody>
-              {results.map((item, i) => (
+              {sortedData.map((item, i) => (
                 <tr key={i}>
                   <td className="text-xs text-muted">{i + 1}</td>
                   {activeType === "rapid" ? (
@@ -411,3 +471,4 @@ function WalletLink({ address, router }) {
     </span>
   );
 }
+export default withAuth(SuspiciousPage);

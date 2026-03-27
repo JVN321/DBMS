@@ -139,8 +139,8 @@ export async function detectDenseClusters(threshold = 3, limit = 20, datasetId =
   }
 }
 
-// --- Risk Score ---
-export async function calculateRiskScore(address) {
+// --- Risk Assessment ---
+export async function calculateRiskAssessment(address) {
   const session = getSession();
   try {
     const result = await session.run(
@@ -155,7 +155,7 @@ export async function calculateRiskScore(address) {
       { address }
     );
 
-    if (result.records.length === 0) return 0;
+    if (result.records.length === 0) return { score: 0, type: 'Normal Behavior', reasoning: ['No risk patterns detected for this address.'] };
 
     const r = result.records[0];
     const outDeg = toNum(r.get('outDeg'));
@@ -164,17 +164,64 @@ export async function calculateRiskScore(address) {
 
     // Scoring: each factor contributes to a 0-100 score
     let score = 0;
+    const reasoning = [];
+    const types = [];
+
     // Fan-out score (max 25)
-    score += Math.min(25, outDeg * 5);
+    let foScore = Math.min(25, outDeg * 5);
+    score += foScore;
+    if (foScore > 0) {
+      if (outDeg >= 5) {
+        reasoning.push(`High fan-out: ${outDeg} outgoing transfers. Indicates potential distribution of funds.`);
+        types.push('High Fan-Out');
+      } else {
+        reasoning.push(`Moderate fan-out: ${outDeg} outgoing transfers.`);
+      }
+    }
+
     // Fan-in score (max 25)
-    score += Math.min(25, inDeg * 5);
+    let fiScore = Math.min(25, inDeg * 5);
+    score += fiScore;
+    if (fiScore > 0) {
+      if (inDeg >= 5) {
+        reasoning.push(`High fan-in: ${inDeg} incoming transfers. Indicates potential aggregation of funds.`);
+        types.push('High Fan-In');
+      } else {
+        reasoning.push(`Moderate fan-in: ${inDeg} incoming transfers.`);
+      }
+    }
+
     // Cycle involvement (max 30)
-    score += Math.min(30, cycles * 15);
+    let cycleScore = Math.min(30, cycles * 15);
+    score += cycleScore;
+    if (cycleScore > 0) {
+      reasoning.push(`Involved in ${cycles} circular transfer patterns. Highly indicative of smurfing or laundering behavior.`);
+      types.push('Circular Transfers');
+    }
+
     // High total degree (max 20)
     const totalDeg = outDeg + inDeg;
-    score += Math.min(20, totalDeg * 2);
+    let degScore = Math.min(20, totalDeg * 2);
+    score += degScore;
+    if (degScore > 10) {
+      reasoning.push(`High overall transaction volume (${totalDeg} total transfers).`);
+      if (totalDeg >= 10) types.push('High Activity');
+    }
 
-    return Math.min(100, score);
+    let riskType = types.length > 0 ? types.join(', ') : 'Normal Behavior';
+    if (score === 0) riskType = 'No Risk Detected';
+
+    return {
+      score: Math.min(100, score),
+      type: riskType,
+      reasoning: reasoning.length > 0 ? reasoning : ['No specific risk patterns detected'],
+      details: {
+        outDegree: outDeg,
+        inDegree: inDeg,
+        cycles: cycles,
+        totalDegree: totalDeg
+      }
+    };
   } finally {
     await session.close();
   }

@@ -1,5 +1,5 @@
 import { getSession } from '../neo4j/driver.js';
-import { calculateRiskScore } from '../services/detection.js';
+import { calculateRiskAssessment } from '../services/detection.js';
 
 export default async function walletRoutes(fastify) {
   fastify.get('/wallet/:address', async (request, reply) => {
@@ -55,7 +55,7 @@ export default async function walletRoutes(fastify) {
         txid: r.get('txid'),
       }));
 
-      const riskScore = await calculateRiskScore(address);
+      const riskAssessment = await calculateRiskAssessment(address);
 
       return {
         address: s.get('address'),
@@ -64,7 +64,10 @@ export default async function walletRoutes(fastify) {
         outgoingCount: toNum(s.get('outCount')),
         incomingCount: toNum(s.get('inCount')),
         coins: s.get('coins'),
-        riskScore,
+        riskScore: riskAssessment.score,
+        riskType: riskAssessment.type,
+        riskReasoning: riskAssessment.reasoning,
+        riskDetails: riskAssessment.details,
         transactions,
         pagination: { skip, limit },
       };

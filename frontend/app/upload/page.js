@@ -1,14 +1,13 @@
+"use client";
+
 import UploadForm from "../components/UploadForm";
+import { withAuth } from "@/lib/withAuth";
 
-export const metadata = {
-  title: "Data Management — DBMS",
-};
-
-export default function UploadPage() {
+function UploadPage() {
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">Data Management</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Data Management</h1>  
         <p className="mt-1 text-sm text-muted">
           Upload your own transaction datasets for private analysis, or manage the shared
           main database (admins only)
@@ -21,3 +20,5 @@ export default function UploadPage() {
     </div>
   );
 }
+
+export default withAuth(UploadPage);
