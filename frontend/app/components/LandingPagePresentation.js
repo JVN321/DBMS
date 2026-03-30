@@ -10,16 +10,11 @@ import {
   BarChart3,
   ChevronRight,
   Clock,
-  Cpu,
   Database,
   Eye,
-  GitBranch,
   Layers,
   Lock,
   Network,
-  Pause,
-  Play,
-  Search,
   ShieldAlert,
 } from "lucide-react";
 
@@ -39,426 +34,210 @@ const monoFont = IBM_Plex_Mono({
 
 const SLIDES = [
   {
-    id: "opening",
-    navLabel: "Opening",
-    kicker: "Slide 01  Opening",
-    title: "DBMS Presentation Mode",
-    summary:
-      "Structured storytelling for demonstrations while the classic page stays concise and easy to scan.",
-    detailPairs: [
-      {
-        term: "Presentation-first",
-        value: "10 curated slides with speaker-focused pacing",
-      },
-      {
-        term: "Dual experience",
-        value: "Classic page for quick reading, deck for guided demos",
-      },
-      {
-        term: "Flexible control",
-        value: "Keyboard navigation plus optional autoplay mode",
-      },
-    ],
+    id: "problem",
+    navLabel: "Problem",
+    kicker: "Slide 01  Problem",
+    title: "Fraud Signals Hide in Graph Structure",
+    mainIdea:
+      "Row-level transaction views miss multi-hop behavior, making fast fraud triage difficult.",
     bullets: [
-      "Use Arrow Up/Down, PageUp/PageDown, or Space to navigate.",
-      "Each section combines audience content with a presenter note panel.",
-      "Autoplay supports hands-free classroom or stakeholder walkthroughs.",
+      "Layering patterns span chains, not single rows.",
+      "Manual tracing slows investigations and misses context.",
+      "Analysts need explainable, relationship-first views.",
     ],
     metrics: [
-      { label: "Deck Format", value: "10 slides" },
-      { label: "Demo Control", value: "Keyboard + Auto" },
-      { label: "Audience Mode", value: "Story-first" },
+      { label: "Primary Gap", value: "No topology context" },
+      { label: "Review Pain", value: "Manual tracing" },
+      { label: "Needed", value: "Graph evidence" },
     ],
-    highlights: [
-      "Reader-friendly classic page",
-      "Deep technical material moved here",
-      "Live demo and narration aligned",
-    ],
-    panelTitle: "Presenter Cues",
+    panelTitle: "Speaker Cues",
     panelItems: [
-      "Open with the core problem: blockchain flows are hard to inspect manually.",
-      "Set expectation: this deck carries the full technical depth from schema to API.",
-      "Tell the audience each slide maps to one speaking segment.",
+      "Start with the investigation bottleneck.",
+      "Explain why rows hide laundering signals.",
+      "Set up DBMS as a graph-first answer.",
     ],
     icon: ShieldAlert,
   },
   {
-    id: "challenge",
-    navLabel: "Challenge",
-    kicker: "Slide 02  Problem",
-    title: "Why Traditional Monitoring Fails",
-    summary:
-      "Fraud patterns hide in topology, timing, and degree relationships that flat tables do not expose.",
-    detailPairs: [
-      {
-        term: "Row-level blind spot",
-        value: "Isolated transactions hide multi-hop laundering behavior",
-      },
-      {
-        term: "Scale pressure",
-        value: "Investigators cannot manually trace thousands of edges quickly",
-      },
-      {
-        term: "Need",
-        value: "Graph-native visibility with explainable prioritization",
-      },
-    ],
+    id: "flow",
+    navLabel: "Flow",
+    kicker: "Slide 02  Workflow",
+    title: "DBMS Workflow in Four Steps",
+    mainIdea:
+      "Upload, detect, score, and investigate in one connected operational flow.",
     bullets: [
-      "Layering patterns span multiple wallets and multiple hops.",
-      "High fan-out and fan-in behavior can look normal in isolated transactions.",
-      "Manual review does not scale to thousands of edges per investigation.",
+      "Ingest CSV or JSON and normalize fields.",
+      "Run detector queries and compute risk.",
+      "Inspect wallets, paths, and clusters in context.",
     ],
     metrics: [
-      { label: "Typical Dataset", value: "1,800+ wallets" },
-      { label: "Signal Type", value: "Graph structure" },
-      { label: "Investigator Need", value: "Fast context" },
+      { label: "Backend", value: "Fastify" },
+      { label: "Graph Store", value: "Neo4j" },
+      { label: "UI", value: "Next.js" },
     ],
-    panelTitle: "Speaker Notes",
+    panelTitle: "Speaker Cues",
     panelItems: [
-      "Contrast row-level reports vs relationship-level reasoning.",
-      "Mention that suspicious behavior is often emergent, not explicit.",
-      "Transition to architecture by asking: how do we model this naturally?",
-    ],
-    icon: Search,
-  },
-  {
-    id: "pipeline",
-    navLabel: "Pipeline",
-    kicker: "Slide 03  Architecture",
-    title: "From Upload to Investigation Evidence",
-    summary:
-      "The backend pipeline parses files, builds an idempotent Neo4j graph, and serves enriched investigation views.",
-    detailPairs: [
-      {
-        term: "Batch ingestion",
-        value: "UNWIND + MERGE writes transactions in batches of 1,000",
-      },
-      {
-        term: "Input support",
-        value: "Internal CSV/JSON and auto-detected BigQuery Ethereum exports",
-      },
-      {
-        term: "Operational guardrail",
-        value: "50 MB default upload limit in admin settings",
-      },
-      {
-        term: "Serving layer",
-        value: "Fastify APIs expose graph, suspicious, wallet, stats, and admin routes",
-      },
-    ],
-    bullets: [
-      "Ingest CSV or JSON and normalize transaction fields.",
-      "Map wallets and transfers into Neo4j nodes and edges.",
-      "Run detection, scoring, and clustering before visualization.",
-    ],
-    metrics: [
-      { label: "Storage", value: "Neo4j graph" },
-      { label: "API Layer", value: "Fastify" },
-      { label: "Frontend", value: "Next.js" },
-    ],
-    snippetLabel: "Ingestion core (schema.md)",
-    snippet: `UNWIND $transactions AS tx
-MERGE (from:Wallet {address: tx.wallet_from})
-MERGE (to:Wallet   {address: tx.wallet_to})
-MERGE (from)-[t:TRANSFER {txid: tx.transaction_id}]->(to)
-ON CREATE SET t.amount = toFloat(tx.amount), t.timestamp = tx.timestamp`,
-    panelTitle: "Live Demo Script",
-    panelItems: [
-      "Show one upload example and explain idempotent merge behavior.",
-      "Call out that transactions become first-class graph edges.",
-      "Set up next slide: now we can detect risk patterns automatically.",
+      "Keep this slide as the mental map.",
+      "Do not go deep on internals yet.",
+      "Transition into data model next.",
     ],
     icon: Database,
   },
   {
-    id: "model",
-    navLabel: "Data Model",
-    kicker: "Slide 04  Schema",
-    title: "Neo4j Data Model for Forensic Work",
-    summary:
-      "Core entities and constraints are optimized for consistent ingestion, fast lookup, and traceable transfer relationships.",
-    detailPairs: [
-      {
-        term: "Node labels",
-        value: "Wallet(address), Coin(name), User(username/email/role)",
-      },
-      {
-        term: "Relationship types",
-        value: "TRANSFER carries txid, amount, value_lossless, timestamp, coin_type",
-      },
-      {
-        term: "Uniqueness",
-        value: "Wallet.address, Coin.name, User.username, and User.email",
-      },
-      {
-        term: "Indexes",
-        value: "TRANSFER.timestamp and TRANSFER.txid for time and hash lookup",
-      },
-    ],
+    id: "schema",
+    navLabel: "Model",
+    kicker: "Slide 03  Data Model",
+    title: "Schema Built for Traceable Fund Flow",
+    mainIdea:
+      "A compact graph model keeps ingestion idempotent and investigations queryable.",
     bullets: [
-      "MERGE-based writes keep uploads idempotent and safe to replay.",
-      "USES edges connect wallets to coin context for cross-asset analysis.",
-      "User nodes keep role and account state in the same graph environment.",
+      "Wallet, Coin, and User nodes model the core entities.",
+      "TRANSFER and USES edges capture movement and asset context.",
+      "Unique constraints prevent duplicate identities.",
     ],
     metrics: [
       { label: "Node Types", value: "3" },
-      { label: "Relationship Types", value: "2" },
-      { label: "Unique Constraints", value: "4" },
+      { label: "Edge Types", value: "2" },
+      { label: "Batch Size", value: "1,000 tx" },
     ],
-    highlights: [
-      "Directed multigraph structure",
-      "Coin-aware relationships",
-      "Index-backed retrieval",
-    ],
-    snippetLabel: "Entity relationship map",
-    snippet: `(Wallet)-[:TRANSFER {txid, amount, timestamp, coin_type}]->(Wallet)
-(Wallet)-[:USES]->(Coin)
-(User {role, is_banned, preferences})`,
-    panelTitle: "Schema Notes",
+    panelTitle: "Speaker Cues",
     panelItems: [
-      "Explain why txid is embedded on TRANSFER for direct traceability.",
-      "Mention value_lossless preservation for precision-safe Ethereum imports.",
-      "Transition to detectors that operate on this graph topology.",
+      "Mention idempotent MERGE behavior.",
+      "Keep schema explanation to 30-40 seconds.",
+      "Bridge into detector logic.",
     ],
     icon: Layers,
   },
   {
     id: "detection",
-    navLabel: "Detection",
-    kicker: "Slide 05  Threat Engine",
-    title: "Pattern Detection with Query-Level Explainability",
-    summary:
-      "Detection logic in backend/services/detection.js uses Cypher patterns tailored to laundering and relay behaviors.",
-    detailPairs: [
-      {
-        term: "Circular detector",
-        value: "MATCH path = (w)-[:TRANSFER*2..6]->(w) for looped flows",
-      },
-      {
-        term: "Fan-out / fan-in",
-        value: "Default threshold 5 for unusual distribution or aggregation hubs",
-      },
-      {
-        term: "Rapid relay",
-        value: "A->B->C forwarding window defaults to 60 seconds",
-      },
-      {
-        term: "Dense cluster",
-        value: "Both in-degree and out-degree must pass threshold (default 3)",
-      },
-    ],
+    navLabel: "Detect",
+    kicker: "Slide 04  Detection",
+    title: "Detection Targets Real Fraud Motifs",
+    mainIdea:
+      "Cypher-based detectors surface motifs investigators already recognize in laundering behavior.",
     bullets: [
-      "Circular transfer chains reveal layering attempts.",
-      "Fan-out and fan-in identify distribution and aggregation hubs.",
-      "Rapid relay windows highlight automation and mule behavior.",
+      "Circular, fan-out, fan-in, rapid relay, and dense cluster checks.",
+      "Defaults are tuned for practical first-pass triage.",
+      "Each flag is explainable and query-backed.",
     ],
     metrics: [
-      { label: "Detectors", value: "5 core rules" },
-      { label: "Default Window", value: "60 seconds" },
-      { label: "Output", value: "Explainable flags" },
+      { label: "Detector Count", value: "5" },
+      { label: "Rapid Window", value: "60s" },
+      { label: "Output", value: "Flagged wallets" },
     ],
-    snippetLabel: "Rapid transfer excerpt (queries.md)",
-    snippet: `MATCH (a:Wallet)-[t1:TRANSFER]->(b:Wallet)-[t2:TRANSFER]->(c:Wallet)
-WHERE a <> c
-  AND toInteger(t2.timestamp) - toInteger(t1.timestamp) >= 0
-  AND toInteger(t2.timestamp) - toInteger(t1.timestamp) <= toInteger($windowSeconds)
-RETURN a.address AS from, b.address AS via, c.address AS to`,
-    panelTitle: "Narration Tips",
+    panelTitle: "Speaker Cues",
     panelItems: [
-      "Explain one detector deeply instead of reading all five.",
-      "Tie every flagged pattern back to a real investigation scenario.",
-      "Bridge to scoring: how should analysts prioritize what to inspect first?",
+      "Use one detector example only.",
+      "Avoid reading all rule names aloud.",
+      "Transition to risk prioritization.",
     ],
     icon: Activity,
   },
   {
     id: "scoring",
-    navLabel: "Scoring",
-    kicker: "Slide 06  Prioritization",
-    title: "Composite Risk Scoring (0 to 100)",
-    summary:
-      "A four-factor scoring model converts graph structure into ranked investigation priority without per-wallet query overhead.",
-    detailPairs: [
-      { term: "Fan-out", value: "min(25, outDeg * 5)" },
-      { term: "Fan-in", value: "min(25, inDeg * 5)" },
-      { term: "Cycle involvement", value: "min(30, cycles * 15)" },
-      { term: "Total degree", value: "min(20, (outDeg + inDeg) * 2)" },
-    ],
+    navLabel: "Score",
+    kicker: "Slide 05  Risk Scoring",
+    title: "One Score for Fast Investigation Priority",
+    mainIdea:
+      "A 0-100 composite score turns graph complexity into an actionable investigation queue.",
     bullets: [
-      "Score blends fan-out, fan-in, cycles, and overall connectivity.",
-      "Bulk scoring uses UNWIND to avoid N+1 database round trips.",
-      "Color-coded thresholds speed analyst decisions in graph view.",
+      "Blend fan-out, fan-in, cycles, and total degree.",
+      "Cycle contribution is weighted highest.",
+      "Bulk scoring uses one database pass via UNWIND.",
     ],
     metrics: [
-      { label: "Scoring Model", value: "4-factor blend" },
-      { label: "Range", value: "0-100" },
-      { label: "Top Weight", value: "Cycles (30)" },
+      { label: "Score Range", value: "0 to 100" },
+      { label: "Top Factor", value: "Cycle signal" },
+      { label: "Use", value: "Triage order" },
     ],
-    highlights: [
-      "Single-query bulk scoring",
-      "Cycle-heavy weighting for obfuscation",
-      "Risk bands: low, medium, high",
-    ],
-    snippetLabel: "Bulk risk scoring pattern",
-    snippet: `UNWIND $addresses AS addr
-MATCH (w:Wallet {address: addr})
-... compute outDeg, inDeg, cycles ...
-WITH addr,
-  CASE WHEN rawScore < 100 THEN rawScore ELSE 100 END AS score
-RETURN addr, score`,
-    panelTitle: "Talking Track",
+    panelTitle: "Speaker Cues",
     panelItems: [
-      "Mention why cycle involvement gets strong weight in many cases.",
-      "Show how this converts a visual graph into a ranked action list.",
-      "Transition to graph intelligence and explain visual encoding choices.",
+      "Explain score as a prioritization tool.",
+      "Do not present it as final verdict.",
+      "Bridge to graph interpretation.",
     ],
     icon: BarChart3,
   },
   {
-    id: "graph-intel",
-    navLabel: "Graph Intelligence",
-    kicker: "Slide 07  Graph Math",
-    title: "3D Mapping, Louvain Communities, and Visual Signals",
-    summary:
-      "Graph rendering uses log scaling and force simulation so both small and large transaction behaviors remain visible.",
-    detailPairs: [
-      { term: "Volume transform", value: "logVolume = log10(totalVolume + 1)" },
-      { term: "Z-axis mapping", value: "z = normalizedVolume * 300 - 150" },
-      { term: "Risk color", value: "hue = 120 * (1 - riskScore / 100)" },
-      { term: "Cluster color", value: "hue = (clusterId * 137.508) % 360" },
-    ],
+    id: "visual",
+    navLabel: "Visualize",
+    kicker: "Slide 06  Graph View",
+    title: "Visual Layer Keeps Signal Readable",
+    mainIdea:
+      "Graph rendering emphasizes meaningful contrast so both small and large behaviors stay visible.",
     bullets: [
-      "Log scaling prevents whale wallets from visually flattening the graph.",
-      "Louvain runs in-memory on fetched subgraphs, no GDS plugin required.",
-      "Edge width uses log amount scaling for readable flow magnitude.",
+      "Log scaling prevents high-volume wallets from flattening the view.",
+      "Community mode and risk mode answer different questions.",
+      "Path tracing supports explainable movement analysis.",
     ],
     metrics: [
-      { label: "Z Range", value: "-150 to +150" },
-      { label: "Edge Width Cap", value: "approx 4 units" },
-      { label: "Community Cost", value: "O(E * iterations)" },
+      { label: "View Modes", value: "Risk and Cluster" },
+      { label: "Z Mapping", value: "Volume based" },
+      { label: "Goal", value: "Readable context" },
     ],
-    snippetLabel: "Visual mapping excerpt (details.md)",
-    snippet: `normalizedVol = (logVol - logMin) / (logMax - logMin)
-zPosition      = normalizedVol * 300 - 150
-edge.logAmount = Math.log10(amount + 1)
-edgeWidth      = Math.max(0.3, edge.logAmount * edgeWidthScale)`,
-    panelTitle: "Explainer Notes",
+    panelTitle: "Speaker Cues",
     panelItems: [
-      "Call out why log scaling is essential for heavy-tailed blockchain values.",
-      "Mention that cluster view and risk view answer different questions.",
-      "Transition to governance: who can do what in production.",
+      "Frame visual choices as analyst aids.",
+      "Mention why log scaling matters.",
+      "Transition to access and operations.",
     ],
-    icon: GitBranch,
+    icon: Network,
   },
   {
     id: "ops",
-    navLabel: "Ops and API",
-    kicker: "Slide 08  Platform Controls",
-    title: "Roles, Security, and Endpoint Surface",
-    summary:
-      "JWT authentication and role-based controls separate analyst workflows from admin operations.",
-    detailPairs: [
-      { term: "Role model", value: "admin and user permissions applied across routes" },
-      { term: "Token policy", value: "JWT tokens with 24-hour expiry" },
-      { term: "Admin scope", value: "upload data, manage users, review logs, adjust settings" },
-      { term: "Analyst scope", value: "graph, suspicious checks, path analysis, wallet inspection" },
-    ],
+    navLabel: "Operate",
+    kicker: "Slide 07  Security",
+    title: "Role-Based Access Keeps Operations Safe",
+    mainIdea:
+      "Permissions separate analyst work from administrative actions without slowing investigations.",
     bullets: [
-      "Authentication is enforced on protected REST endpoints.",
-      "Core APIs include /graph, /wallet/:address, /suspicious, /stats, and admin routes.",
-      "Role-aware UI keeps non-admin users away from destructive actions.",
+      "Users investigate graph, suspicious patterns, and wallets.",
+      "Admins upload data, manage users, and adjust system settings.",
+      "JWT access control is enforced across protected routes.",
     ],
     metrics: [
-      { label: "User Roles", value: "2" },
+      { label: "Roles", value: "Admin and User" },
       { label: "Token TTL", value: "24h" },
-      { label: "Core Endpoints", value: "10" },
+      { label: "Access Model", value: "Route guards" },
     ],
-    highlights: [
-      "Least-privilege workflow",
-      "Admin-only data ingestion",
-      "Audit and settings controls",
-    ],
-    snippetLabel: "Endpoint reference",
-    snippet: `GET  /graph
-GET  /wallet/:address
-GET  /suspicious?type=circular|fanout|fanin|rapid|cluster
-POST /upload-transactions    (admin)
-PATCH /admin/users/:id       (admin)`,
-    panelTitle: "Governance Notes",
+    panelTitle: "Speaker Cues",
     panelItems: [
-      "Clarify that upload and user management stay admin-only.",
-      "Mention how role guards appear in both API and frontend navigation.",
-      "Transition to an end-to-end demonstration sequence.",
+      "Keep this governance-focused.",
+      "Mention admin-only upload flow.",
+      "Transition to live demo steps.",
     ],
     icon: Lock,
   },
   {
-    id: "walkthrough",
-    navLabel: "Walkthrough",
-    kicker: "Slide 09  Demonstration",
-    title: "Recommended Live Walkthrough",
-    summary:
-      "Use this sequence during presentations to keep technical depth and audience clarity in balance.",
-    detailPairs: [
-      { term: "Step 1", value: "Upload sample data and confirm ingestion count" },
-      { term: "Step 2", value: "Run one detector and inspect suspicious list output" },
-      { term: "Step 3", value: "Open wallet detail and interpret risk contributors" },
-      { term: "Step 4", value: "Trace path and community context in graph view" },
-    ],
+    id: "close",
+    navLabel: "Demo",
+    kicker: "Slide 08  Demonstration",
+    title: "Demo Sequence for Stakeholders",
+    mainIdea:
+      "Follow one concise run: load data, flag risk, inspect wallet, explain decision.",
     bullets: [
-      "Step 1: Upload sample data and verify graph growth.",
-      "Step 2: Open suspicious view and trigger one detector.",
-      "Step 3: Jump into a wallet profile and explain the score.",
+      "Upload sample file and confirm graph growth.",
+      "Run one detector and review suspicious results.",
+      "Open a wallet profile and justify the risk score.",
     ],
     metrics: [
-      { label: "Demo Time", value: "6-10 min" },
-      { label: "Best Audience", value: "Tech + non-tech" },
-      { label: "Outcome", value: "Visible insight" },
+      { label: "Slide Count", value: "8" },
+      { label: "Demo Time", value: "6-8 min" },
+      { label: "Outcome", value: "Actionable insight" },
     ],
-    panelTitle: "Timing Guide",
+    panelTitle: "Speaker Cues",
     panelItems: [
-      "Spend 2 min on setup and architecture.",
-      "Spend 4 min on detection and graph interpretation.",
-      "Close with risk-based decision making and next actions.",
+      "End on decision speed and clarity.",
+      "Invite questions before launching console.",
+      "Replay from slide one if needed.",
     ],
     icon: Clock,
-  },
-  {
-    id: "close",
-    navLabel: "Close",
-    kicker: "Slide 10  Launch",
-    title: "Ready for a Full Demonstration",
-    summary:
-      "Switch from presentation mode to the live application and run the workflow against your own dataset.",
-    detailPairs: [
-      { term: "Deck outcome", value: "Shared language for technical and non-technical audiences" },
-      { term: "Live transition", value: "Move directly into login and run the same storyline hands-on" },
-      { term: "Operational focus", value: "Faster fraud triage with explainable graph evidence" },
-    ],
-    bullets: [
-      "Presentation flow keeps communication structured.",
-      "Live console validates every point with real interactions.",
-      "Security and role-based access stay aligned with deployment needs.",
-    ],
-    metrics: [
-      { label: "Transition", value: "Deck -> App" },
-      { label: "Access", value: "JWT login" },
-      { label: "Focus", value: "Investigation speed" },
-    ],
-    panelTitle: "Closing Script",
-    panelItems: [
-      "Invite questions while opening the login screen.",
-      "Offer to replay the deck for another audience type.",
-      "End with one concrete value statement: faster, clearer fraud triage.",
-    ],
-    icon: Cpu,
   },
 ];
 
 export default function LandingPagePresentation() {
   const router = useRouter();
   const [activeSlide, setActiveSlide] = useState(0);
-  const [autoplay, setAutoplay] = useState(false);
 
   const currentSlide = useMemo(() => SLIDES[activeSlide], [activeSlide]);
   const progressPct = ((activeSlide + 1) / SLIDES.length) * 100;
@@ -545,25 +324,6 @@ export default function LandingPagePresentation() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeSlide]);
 
-  useEffect(() => {
-    if (!autoplay) return undefined;
-
-    const timer = setInterval(() => {
-      setActiveSlide((currentIndex) => {
-        const nextIndex = currentIndex >= SLIDES.length - 1 ? 0 : currentIndex + 1;
-        const target = document.getElementById(SLIDES[nextIndex].id);
-
-        if (target) {
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-
-        return nextIndex;
-      });
-    }, 6500);
-
-    return () => clearInterval(timer);
-  }, [autoplay]);
-
   return (
     <div className={`ppt-root ${headingFont.variable} ${monoFont.variable}`}>
       <div className="ppt-network-bg" aria-hidden="true">
@@ -584,7 +344,7 @@ export default function LandingPagePresentation() {
 
         <div className="ppt-progress-wrap" aria-label="Slide progress">
           <p className="ppt-progress-label">
-            {currentSlide.kicker} - {activeSlide + 1}/{SLIDES.length}
+            {activeSlide + 1}/{SLIDES.length} - {currentSlide.navLabel}
           </p>
           <div className="ppt-progress-track">
             <div className="ppt-progress-fill" style={{ width: `${progressPct}%` }} />
@@ -610,14 +370,6 @@ export default function LandingPagePresentation() {
             <ArrowRight size={14} />
           </button>
 
-          <button
-            className="ppt-icon-btn"
-            onClick={() => setAutoplay((state) => !state)}
-            aria-label={autoplay ? "Pause autoplay" : "Start autoplay"}
-          >
-            {autoplay ? <Pause size={14} /> : <Play size={14} />}
-          </button>
-
           <button className="ppt-launch-btn" onClick={() => router.push("/login")}>
             <Lock size={13} />
             Open Console
@@ -633,6 +385,7 @@ export default function LandingPagePresentation() {
             onClick={() => scrollToSlide(index)}
           >
             <span className="ppt-rail-dot" />
+            <span className="ppt-rail-index">{String(index + 1).padStart(2, "0")}</span>
             <span className="ppt-rail-text">{slide.navLabel}</span>
           </button>
         ))}
@@ -658,24 +411,15 @@ export default function LandingPagePresentation() {
                   <h1 className="ppt-title ppt-anim-item" style={{ "--ppt-delay": "0.09s" }}>
                     {slide.title}
                   </h1>
-                  <p className="ppt-summary ppt-anim-item" style={{ "--ppt-delay": "0.14s" }}>
-                    {slide.summary}
-                  </p>
 
-                  {slide.detailPairs?.length > 0 && (
-                    <dl className="ppt-detail-grid">
-                      {slide.detailPairs.map((detail, detailIdx) => (
-                        <div
-                          key={`${slide.id}-detail-${detail.term}`}
-                          className="ppt-detail-card ppt-anim-item"
-                          style={{ "--ppt-delay": `${0.18 + detailIdx * 0.045}s` }}
-                        >
-                          <dt className="ppt-detail-term">{detail.term}</dt>
-                          <dd className="ppt-detail-value">{detail.value}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
+                  <div className="ppt-main-idea ppt-anim-item" style={{ "--ppt-delay": "0.14s" }}>
+                    <p className="ppt-main-idea-label">Main idea</p>
+                    <p className="ppt-main-idea-text">{slide.mainIdea}</p>
+                  </div>
+
+                  <p className="ppt-audience-heading ppt-anim-item" style={{ "--ppt-delay": "0.2s" }}>
+                    Audience takeaway
+                  </p>
 
                   <ul className="ppt-bullet-list">
                     {slide.bullets.map((bullet, bulletIdx) => (
@@ -701,27 +445,6 @@ export default function LandingPagePresentation() {
                       </div>
                     ))}
                   </div>
-
-                  {slide.highlights?.length > 0 && (
-                    <div className="ppt-chip-row">
-                      {slide.highlights.map((chip, chipIdx) => (
-                        <span
-                          key={`${slide.id}-chip-${chip}`}
-                          className="ppt-chip ppt-anim-item"
-                          style={{ "--ppt-delay": `${0.43 + chipIdx * 0.04}s` }}
-                        >
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {slide.snippet && (
-                    <div className="ppt-code-wrap ppt-anim-item" style={{ "--ppt-delay": "0.52s" }}>
-                      <p className="ppt-code-label">{slide.snippetLabel || "Reference Snippet"}</p>
-                      <pre className="ppt-code-block">{slide.snippet}</pre>
-                    </div>
-                  )}
 
                   {index === 0 && (
                     <div className="ppt-inline-actions ppt-anim-item" style={{ "--ppt-delay": "0.58s" }}>

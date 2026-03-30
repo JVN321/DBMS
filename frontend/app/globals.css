@@ -1468,7 +1468,7 @@ body {
 .ppt-network-bg canvas {
   width: 100% !important;
   height: 100% !important;
-  opacity: 0.2;
+  opacity: 0.12;
 }
 
 .ppt-atmosphere {
@@ -1477,11 +1477,11 @@ body {
   z-index: 1;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
   background-size: 56px 56px;
-  -webkit-mask-image: radial-gradient(circle at 50% 36%, black 30%, transparent 84%);
-  mask-image: radial-gradient(circle at 50% 36%, black 30%, transparent 84%);
+  -webkit-mask-image: radial-gradient(circle at 50% 36%, black 26%, transparent 86%);
+  mask-image: radial-gradient(circle at 50% 36%, black 26%, transparent 86%);
 }
 
 .ppt-topbar {
@@ -1491,10 +1491,10 @@ body {
   right: 1rem;
   z-index: 30;
   display: grid;
-  grid-template-columns: 1.1fr 1fr auto;
+  grid-template-columns: 1fr 1fr auto;
   gap: 1rem;
   align-items: center;
-  padding: 0.7rem 0.9rem;
+  padding: 0.62rem 0.82rem;
   border: 1px solid rgba(159, 176, 202, 0.24);
   border-radius: 0.9rem;
   background: rgba(4, 10, 20, 0.8);
@@ -1543,9 +1543,9 @@ body {
 
 .ppt-progress-label {
   margin: 0;
-  font-size: 0.64rem;
+  font-size: 0.6rem;
   color: rgba(159, 176, 202, 0.95);
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   font-family: var(--font-ppt-mono), "IBM Plex Mono", "JetBrains Mono", monospace;
 }
@@ -1569,7 +1569,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.45rem;
+  gap: 0.38rem;
 }
 
 .ppt-icon-btn,
@@ -1655,14 +1655,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.48rem;
-  width: 9.5rem;
+  width: 8.6rem;
 }
 
 .ppt-rail-item {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.5rem;
+  gap: 0.34rem;
+  padding: 0.3rem 0.42rem;
   border: 1px solid transparent;
   border-radius: 0.55rem;
   background: transparent;
@@ -1691,10 +1691,22 @@ body {
   box-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
 }
 
-.ppt-rail-text {
-  font-size: 0.65rem;
-  letter-spacing: 0.07em;
+.ppt-rail-index {
+  min-width: 1.45rem;
+  color: rgba(143, 204, 255, 0.9);
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  font-family: var(--font-ppt-mono), "IBM Plex Mono", "JetBrains Mono", monospace;
+}
+
+.ppt-rail-text {
+  font-size: 0.57rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--font-ppt-mono), "IBM Plex Mono", "JetBrains Mono", monospace;
 }
 
@@ -1705,6 +1717,8 @@ body {
   overflow-y: auto;
   scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
+  padding-left: 10rem;
+  padding-right: 1.25rem;
 }
 
 .ppt-slide {
@@ -1713,28 +1727,25 @@ body {
   scroll-snap-align: start;
   display: grid;
   align-items: center;
-  padding: 6rem 1.5rem 3rem;
+  padding: 6rem 0 2.8rem;
   opacity: 1;
-  transform: scale(1);
-  transition: opacity 0.45s ease, transform 0.45s ease;
+  transition: opacity 0.35s ease;
 }
 
 .ppt-slide:not(.is-active) {
-  opacity: 0.74;
-  transform: scale(0.992);
+  opacity: 0.86;
 }
 
 .ppt-slide.is-active {
   opacity: 1;
-  transform: scale(1);
 }
 
 .ppt-slide-grid {
-  width: min(1180px, 100%);
+  width: min(1080px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.45fr 1fr;
-  gap: 1rem;
+  grid-template-columns: 1.52fr 1fr;
+  gap: 0.85rem;
 }
 
 .ppt-card,
@@ -1748,13 +1759,13 @@ body {
 }
 
 .ppt-card {
-  padding: 1.55rem;
+  padding: 1.35rem;
   opacity: 0;
   transform: translateY(12px);
 }
 
 .ppt-slide.is-active .ppt-card {
-  animation: ppt-slide-rise 0.65s ease forwards;
+  animation: ppt-slide-rise 0.5s ease forwards;
 }
 
 .ppt-card .ppt-anim-item {
@@ -1806,17 +1817,42 @@ body {
 
 .ppt-title {
   margin: 1.05rem 0 0;
-  font-size: clamp(1.95rem, 4.2vw, 3.3rem);
-  line-height: 1.06;
+  font-size: clamp(1.85rem, 3.8vw, 3rem);
+  line-height: 1.08;
   letter-spacing: -0.03em;
 }
 
-.ppt-summary {
+.ppt-main-idea {
+  margin-top: 0.82rem;
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: 0.72rem;
+  background: rgba(34, 211, 238, 0.08);
+  padding: 0.62rem 0.72rem;
+}
+
+.ppt-main-idea-label {
+  margin: 0;
+  font-size: 0.56rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #9ef5ff;
+  font-family: var(--font-ppt-mono), "IBM Plex Mono", "JetBrains Mono", monospace;
+}
+
+.ppt-main-idea-text {
+  margin: 0.3rem 0 0;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: #e6f2ff;
+}
+
+.ppt-audience-heading {
   margin: 0.9rem 0 0;
-  max-width: 63ch;
-  font-size: 0.95rem;
-  line-height: 1.7;
-  color: var(--ppt-muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(159, 176, 202, 0.96);
+  font-family: var(--font-ppt-mono), "IBM Plex Mono", "JetBrains Mono", monospace;
 }
 
 .ppt-detail-grid {
@@ -1850,35 +1886,35 @@ body {
 }
 
 .ppt-bullet-list {
-  margin: 1.15rem 0 0;
+  margin: 0.52rem 0 0;
   padding-left: 1.15rem;
   display: grid;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .ppt-bullet-list li {
-  font-size: 0.88rem;
-  line-height: 1.6;
+  font-size: 0.84rem;
+  line-height: 1.52;
   color: #d9e7f8;
 }
 
 .ppt-metrics-grid {
-  margin-top: 1.25rem;
+  margin-top: 0.95rem;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 0.52rem;
 }
 
 .ppt-metric-card {
   border: 1px solid rgba(159, 176, 202, 0.22);
   border-radius: 0.7rem;
-  padding: 0.75rem;
+  padding: 0.62rem;
   background: rgba(18, 37, 58, 0.54);
 }
 
 .ppt-metric-value {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -1943,14 +1979,14 @@ body {
 }
 
 .ppt-inline-actions {
-  margin-top: 1.1rem;
+  margin-top: 0.88rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
 }
 
 .ppt-notes-card {
-  padding: 1.05rem;
+  padding: 0.9rem;
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
@@ -1971,13 +2007,13 @@ body {
   margin: 0;
   padding-left: 1.1rem;
   display: grid;
-  gap: 0.72rem;
+  gap: 0.56rem;
 }
 
 .ppt-notes-list li {
   color: #c5d6ed;
-  font-size: 0.82rem;
-  line-height: 1.6;
+  font-size: 0.75rem;
+  line-height: 1.45;
 }
 
 .ppt-note-item {
@@ -2003,6 +2039,21 @@ body {
   font-family: var(--font-ppt-mono), "IBM Plex Mono", "JetBrains Mono", monospace;
 }
 
+@media (max-width: 1380px) {
+  .ppt-rail {
+    display: none;
+  }
+
+  .ppt-deck {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .ppt-slide {
+    padding: 7.2rem 0 2.2rem;
+  }
+}
+
 @media (max-width: 1180px) {
   .ppt-topbar {
     grid-template-columns: 1fr;
@@ -2022,7 +2073,7 @@ body {
   }
 
   .ppt-slide {
-    padding: 7.8rem 1rem 2.2rem;
+    padding: 7.8rem 0 2.2rem;
   }
 }
 
@@ -2039,18 +2090,10 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .ppt-detail-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .ppt-summary,
+  .ppt-main-idea-text,
   .ppt-bullet-list li,
   .ppt-notes-list li {
     font-size: 0.86rem;
-  }
-
-  .ppt-code-block {
-    font-size: 0.64rem;
   }
 }
 
