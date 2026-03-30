@@ -749,9 +749,9 @@ export default function LandingPage() {
         {/* Background overlay — network is now global behind the page */}
         <div className="absolute inset-0 z-0">
           {/* Radial gradient overlay for readability */}
-          <div className="absolute inset-0 bg-linear-to-b from-transparent via-[#000000]/30 to-[#000000]/70" />
+          <div className="absolute inset-0 bg-linear-to-b from-transparent via-[#000000]/30 to-[#000000]/60" />
           {/* Grid overlay */}
-          <div className="landing-grid-overlay" />
+          <div className="landing-grid-overlay " />
         </div>
 
         <div className="relative z-10 landing-hero-content">
@@ -765,11 +765,10 @@ export default function LandingPage() {
 
           {/* Headline */}
           <h1 className="landing-hero-title">
-            <span className="landing-glitch" data-text="Distributed Blockchain">
+            <span className="landing-glitch block whitespace-nowrap" data-text="Distributed Blockchain">
               Distributed Blockchain
             </span>
-            <br />
-            <span className="landing-hero-accent">
+            <span className="landing-hero-accent block whitespace-nowrap mt-2">
               Monitoring System
             </span>
           </h1>

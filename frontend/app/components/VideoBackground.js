@@ -27,13 +27,13 @@ export default function VideoBackground({ className, videoSrc = "/asset/backgrou
         loop
         muted
         playsInline
-        className="w-full h-full object-cover opacity-80"
+        className="w-full h-full object-cover opacity-100"
         style={{
-          filter: "brightness(0.9) contrast(1.1)", // Optional: tweaks to make overlay text pop
+          filter: "brightness(1) contrast(1.1)", // Optional: tweaks to make overlay text pop
         }}
       />
       {/* Optional dark overlay to ensure text readability */}
-      <div className="absolute inset-0 bg-black/40 z-10"></div>
+      <div className="absolute inset-0 bg-black/10 z-10"></div>
     </div>
   );
 }
