@@ -38,45 +38,58 @@ const SubSlider = ({ subSlides }) => {
   const [activeIdx, setActiveIdx] = useState(0);
 
   return (
-    <div className="ppt-anim-item mt-6 relative overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900/50 p-6 backdrop-blur-md shadow-2xl" style={{ "--ppt-delay": "0.40s" }}>
-      <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
-        <h3 className="text-xl font-bold tracking-tight text-white flex items-center gap-3">
-           <span className="bg-blue-600/20 text-blue-400 py-1 px-3 rounded-md text-sm uppercase tracking-wider">{subSlides[activeIdx].type}</span>
-           {subSlides[activeIdx].title}
+    <div className="ppt-anim-item mt-6 relative overflow-hidden rounded-2xl border border-indigo-500/30 bg-black/60 p-6 backdrop-blur-xl shadow-[0_0_40px_rgba(79,70,229,0.15)] group" style={{ "--ppt-delay": "0.40s" }}>
+      {/* Decorative gradient orbs */}
+      <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none group-hover:bg-purple-600/30 transition-colors duration-700" />
+      <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-teal-600/20 rounded-full blur-3xl pointer-events-none group-hover:bg-teal-600/30 transition-colors duration-700" />
+
+      <div className="flex items-center justify-between mb-5 border-b border-indigo-500/20 pb-4 relative z-10">
+        <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-3 sm:gap-4">
+           <span className="bg-gradient-to-r from-teal-400/20 to-purple-500/20 border border-teal-500/30 text-teal-300 py-1 px-2 sm:px-3 rounded-lg text-[10px] sm:text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(45,212,191,0.2)]">{subSlides[activeIdx].type}</span>
+           <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300">{subSlides[activeIdx].title}</span>
         </h3>
-        <div className="flex gap-2 items-center">
-           <button onClick={() => setActiveIdx(i => Math.max(0, i-1))} disabled={activeIdx === 0} className="p-2 hover:bg-white/10 rounded-full text-white disabled:opacity-30 transition-all"><ArrowLeft size={16}/></button>
-           <span className="text-sm text-slate-400 font-mono py-2">{activeIdx + 1} / {subSlides.length}</span>
-           <button onClick={() => setActiveIdx(i => Math.min(subSlides.length-1, i+1))} disabled={activeIdx === subSlides.length - 1} className="p-2 hover:bg-white/10 rounded-full text-white disabled:opacity-30 transition-all"><ArrowRight size={16}/></button>
+        <div className="flex gap-2 sm:gap-3 items-center">
+           <button onClick={() => setActiveIdx(i => Math.max(0, i-1))} disabled={activeIdx === 0} className="p-2 sm:p-2.5 bg-white/5 hover:bg-teal-500/20 hover:text-teal-300 rounded-xl text-white disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:text-white transition-all duration-300 backdrop-blur-sm"><ArrowLeft size={16}/></button>
+           <span className="text-sm text-indigo-300 font-mono py-2 font-bold px-1 sm:px-2">{activeIdx + 1} <span className="opacity-50">/</span> {subSlides.length}</span>
+           <button onClick={() => setActiveIdx(i => Math.min(subSlides.length-1, i+1))} disabled={activeIdx === subSlides.length - 1} className="p-2 sm:p-2.5 bg-white/5 hover:bg-teal-500/20 hover:text-teal-300 rounded-xl text-white disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:text-white transition-all duration-300 backdrop-blur-sm"><ArrowRight size={16}/></button>
         </div>
       </div>
       
-      <div className="relative" style={{ minHeight: "340px" }}>
-        {subSlides.map((sub, idx) => (
-          <div 
-            key={sub.id} 
-            className="absolute inset-x-0 top-0 transition-all duration-500 ease-in-out flex flex-col"
-            style={{
-              opacity: activeIdx === idx ? 1 : 0,
-              transform: activeIdx === idx ? "translateY(0) scale(1)" : activeIdx > idx ? "translateY(-40px) scale(0.95)" : "translateY(40px) scale(0.95)",
-              pointerEvents: activeIdx === idx ? "auto" : "none",
-              zIndex: activeIdx === idx ? 10 : 0
-            }}
-          >
-            <p className="text-slate-300 text-[15px] mb-4 leading-relaxed">{sub.description}</p>
-            <div className="ppt-code-block w-full flex-grow overflow-auto" style={{ margin: 0, padding: '1rem', background: '#0f172a', border: '1px solid #1e293b' }}>
-              <pre><code className="text-sm text-blue-300">{sub.code}</code></pre>
+      <div className="relative z-10" style={{ minHeight: "360px", perspective: "1000px" }}>
+        {subSlides.map((sub, idx) => {
+          const isActive = activeIdx === idx;
+          const isPast = idx < activeIdx;
+          
+          return (
+            <div 
+              key={sub.id} 
+              className="absolute inset-x-0 top-0 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col h-full"
+              style={{
+                opacity: isActive ? 1 : 0,
+                transform: isActive 
+                  ? "translate3d(0, 0, 0) rotateX(0) scale(1)" 
+                  : isPast 
+                    ? "translate3d(-80px, 0, -50px) rotateY(-8deg) scale(0.92)" 
+                    : "translate3d(80px, 0, -50px) rotateY(8deg) scale(0.92)",
+                pointerEvents: isActive ? "auto" : "none",
+                zIndex: isActive ? 10 : 0
+              }}
+            >
+              <p className="text-indigo-100/90 text-[15px] sm:text-[16px] mb-5 leading-relaxed font-medium bg-indigo-950/40 p-4 rounded-xl border border-indigo-500/20 backdrop-blur-md shadow-inner">{sub.description}</p>
+              <div className="ppt-code-block w-full flex-grow overflow-auto rounded-xl" style={{ margin: 0, padding: '1.25rem', background: 'rgba(5, 5, 15, 0.7)', border: '1px solid rgba(99, 102, 241, 0.2)', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)' }}>
+                <pre><code className="text-[13px] sm:text-[14px] text-teal-400 font-mono" style={{ textShadow: "0 0 10px rgba(45,212,191,0.3)" }}>{sub.code}</code></pre>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       
-      <div className="flex justify-center gap-2 mt-4 pt-4 border-t border-white/10 relative z-20">
+      <div className="flex justify-center gap-3 mt-6 pt-5 border-t border-indigo-500/20 relative z-20">
         {subSlides.map((_, idx) => (
            <button 
              key={idx} 
              onClick={() => setActiveIdx(idx)}
-             className={`h-1.5 rounded-full transition-all duration-300 ${activeIdx === idx ? 'w-8 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'w-2 bg-slate-600 hover:bg-slate-400'}`}
+             className={`h-2 rounded-full transition-all duration-500 ease-out ${activeIdx === idx ? 'w-12 bg-teal-400 shadow-[0_0_15px_rgba(45,212,191,0.7)]' : 'w-2.5 bg-indigo-900/80 hover:bg-teal-500/50 hover:shadow-[0_0_10px_rgba(45,212,191,0.3)]'}`}
              aria-label={`Go to subslide ${idx + 1}`}
            />
         ))}
