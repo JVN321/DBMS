@@ -333,9 +333,6 @@ export default function LandingPagePresentation() {
 
       <header className="ppt-topbar">
         <div className="ppt-brand">
-          <div className="ppt-brand-icon">
-            <ShieldAlert size={14} />
-          </div>
           <div>
             <p className="ppt-brand-title">DBMS</p>
             <p className="ppt-brand-sub">Presentation and Demonstration Mode</p>

@@ -4,14 +4,14 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 /**
- * CustomCursor — replaces the native cursor site-wide.
+ * CustomCursor — optional scoped custom cursor.
  *
  * States:
  *  • default     – small dot + subtle ring
  *  • clickable   – ring enlarges slightly (buttons, links, etc.)
  *  • graph-node  – targeting crosshair + scan ring colored to the node's risk hue
  */
-export default function CustomCursor() {
+export default function CustomCursor({ scopeRef = null }) {
   const pathname = usePathname();
   const dotRef = useRef(null);
   const ringRef = useRef(null);
@@ -43,12 +43,38 @@ export default function CustomCursor() {
     const b3    = brac3Ref.current;
     const b4    = brac4Ref.current;
     const label = labelRef.current;
+    const scopeEl = scopeRef?.current ?? null;
+    let insideScope = !scopeEl;
 
     if (!dot || !ring) return;
 
     // ── Smooth position via RAF ──────────────────────────────────────
     let mouseX = -200, mouseY = -200;
     let rafId = null;
+
+    const isInScope = (target) => {
+      if (!scopeEl) return true;
+      if (!(target instanceof Node)) return false;
+      return scopeEl.contains(target);
+    };
+
+    const resetNode = () => {
+      ring.classList.remove("cursor--node");
+      [b1, b2, b3, b4].forEach((b) => b.classList.remove("cursor-bracket--active"));
+      label.classList.remove("cursor-label--visible");
+    };
+
+    const setVisible = (visible) => {
+      const opacity = visible ? "1" : "0";
+      dot.style.opacity = opacity;
+      ring.style.opacity = opacity;
+      if (!visible) {
+        resetNode();
+        ring.classList.remove("cursor--clickable");
+      }
+    };
+
+    setVisible(!scopeEl);
 
     const tick = () => {
       const tx = `translate(${mouseX}px,${mouseY}px)`;
@@ -64,20 +90,38 @@ export default function CustomCursor() {
     rafId = requestAnimationFrame(tick);
 
     const onMove = (e) => {
+      if (scopeEl && !insideScope) return;
       mouseX = e.clientX;
       mouseY = e.clientY;
     };
     window.addEventListener("mousemove", onMove, { passive: true });
 
+    const onScopeEnter = () => {
+      insideScope = true;
+      setVisible(true);
+    };
+
+    const onScopeLeave = () => {
+      insideScope = false;
+      setVisible(false);
+    };
+
+    if (scopeEl) {
+      scopeEl.addEventListener("mouseenter", onScopeEnter);
+      scopeEl.addEventListener("mouseleave", onScopeLeave);
+    }
+
     // ── Generic clickable hover (buttons, links, interactive elements) ──
     const CLICKABLE = "a,button,[role=button],input,select,textarea,label,[tabindex]";
 
     const onOver = (e) => {
+      if (!isInScope(e.target)) return;
       if (e.target.closest(CLICKABLE)) {
         ring.classList.add("cursor--clickable");
       }
     };
     const onOut = (e) => {
+      if (!isInScope(e.target)) return;
       if (e.target.closest(CLICKABLE)) {
         ring.classList.remove("cursor--clickable");
       }
@@ -86,18 +130,18 @@ export default function CustomCursor() {
     window.addEventListener("mouseout",   onOut,  { passive: true });
 
     // ── Mouse down/up feedback ───────────────────────────────────────
-    const resetNode = () => {
-      ring.classList.remove("cursor--node");
-      [b1, b2, b3, b4].forEach((b) => b.classList.remove("cursor-bracket--active"));
-      label.classList.remove("cursor-label--visible");
+    const onDown = (e) => {
+      if (!isInScope(e.target)) return;
+      dot.classList.add("cursor--press");
+      resetNode();
     };
-    const onDown = () => { dot.classList.add("cursor--press"); resetNode(); };
-    const onUp   = () => dot.classList.remove("cursor--press");
+    const onUp = () => dot.classList.remove("cursor--press");
     window.addEventListener("mousedown", onDown, { passive: true });
     window.addEventListener("mouseup",   onUp,   { passive: true });
 
     // ── Graph node hover event (dispatched from GraphViewer/*.js) ────
     const onNodeHover = (e) => {
+      if (scopeEl && !insideScope) return;
       const node = e.detail?.node;
 
       if (node) {
@@ -137,18 +181,22 @@ export default function CustomCursor() {
 
     // ── Leave window: hide cursor ────────────────────────────────────
     const onLeave = () => {
-      dot.style.opacity  = "0";
-      ring.style.opacity = "0";
+      setVisible(false);
     };
     const onEnter = () => {
-      dot.style.opacity  = "1";
-      ring.style.opacity = "1";
+      if (!scopeEl || insideScope) {
+        setVisible(true);
+      }
     };
     document.addEventListener("mouseleave", onLeave);
     document.addEventListener("mouseenter", onEnter);
 
     return () => {
       cancelAnimationFrame(rafId);
+      if (scopeEl) {
+        scopeEl.removeEventListener("mouseenter", onScopeEnter);
+        scopeEl.removeEventListener("mouseleave", onScopeLeave);
+      }
       window.removeEventListener("mousemove",         onMove);
       window.removeEventListener("mouseover",         onOver);
       window.removeEventListener("mouseout",          onOut);
@@ -158,7 +206,7 @@ export default function CustomCursor() {
       document.removeEventListener("mouseleave",      onLeave);
       document.removeEventListener("mouseenter",      onEnter);
     };
-  }, []);
+  }, [scopeRef]);
 
   return (
     <>

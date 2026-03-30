@@ -3,7 +3,6 @@ import "./globals.css";
 import Sidebar from "./components/Sidebar";
 import FloatingBackground from "./components/FloatingBackground";
 import MainWrapper from "./components/MainWrapper";
-import CustomCursor from "./components/CustomCursor";
 import { AuthProvider } from "@/lib/authContext";
 
 const geistSans = Geist({
@@ -29,7 +28,6 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <AuthProvider>
-          <CustomCursor />
           <FloatingBackground />
           <Sidebar />
           <MainWrapper>{children}</MainWrapper>

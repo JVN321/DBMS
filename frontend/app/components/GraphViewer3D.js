@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
+import CustomCursor from "./CustomCursor";
 
 // ═══════════════════════════════════════════════════════════════════════
 // Color utilities
@@ -968,9 +969,10 @@ export default function GraphViewer3D({
 
   return (
     <div className="relative" style={style}>
+      <CustomCursor scopeRef={containerRef} />
       <div
         ref={containerRef}
-        className="graph-container-3d"
+        className="graph-container-3d custom-cursor-scope"
         style={{ width: "100%", height: "100%" }}
         tabIndex={0}
       />

@@ -698,7 +698,7 @@ export default function LandingPage() {
       <>
       {/* ════════════ Full-screen cyber network background ════════════ */}
       <div className="cyber-network-bg" aria-hidden="true">
-        <CyberNetworkCanvas />
+        <CyberNetworkCanvas variant="forensic" />
       </div>
 
       <ScanlineOverlay />
@@ -708,10 +708,7 @@ export default function LandingPage() {
         className={`landing-nav ${scrollY > 50 ? "landing-nav-scrolled" : ""}`}
       >
         <div className="landing-nav-inner">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-800/80 shadow-lg shadow-red-900/20">
-              <ShieldAlert size={16} className="text-white" />
-            </div>
+          <div className="flex items-center">
             <div>
               <span className="text-sm font-bold tracking-tight text-white font-mono">
                 DBMS
@@ -988,8 +985,7 @@ export default function LandingPage() {
       {/* ════════════════════ FOOTER ════════════════════ */}
       <footer className="landing-footer">
         <div className="landing-footer-inner">
-          <div className="flex items-center gap-2">
-            <ShieldAlert size={14} className="text-red-500" />
+          <div className="flex items-center">
             <span className="font-mono text-xs text-zinc-600">
               DBMS v2.0
             </span>
