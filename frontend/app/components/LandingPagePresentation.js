@@ -327,7 +327,8 @@ export default function LandingPagePresentation() {
   return (
     <div className={`ppt-root ${headingFont.variable} ${monoFont.variable}`}>
       <div className="ppt-network-bg" aria-hidden="true">
-        <VideoBackground videoSrc="/asset/background.mp4" />
+        {/* Basic subtle gradient for demo mode, bypassing heavy MP4 parsing */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-slate-900 to-black opacity-90" />
       </div>
       <div className="ppt-atmosphere" aria-hidden="true" />
 
@@ -398,7 +399,7 @@ export default function LandingPagePresentation() {
               id={slide.id}
               className={`ppt-slide ${index === activeSlide ? "is-active" : ""}`}
             >
-              <div className="ppt-slide-grid">
+              <div className="ppt-slide-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '800px', margin: '0 auto' }}>
                 <article className="ppt-card">
                   <span className="ppt-kicker ppt-anim-item" style={{ "--ppt-delay": "0.04s" }}>
                     <Icon size={14} />
@@ -465,30 +466,6 @@ export default function LandingPagePresentation() {
                     </div>
                   )}
                 </article>
-
-                <aside className="ppt-notes-card">
-                  <div className="ppt-notes-header ppt-note-item" style={{ "--ppt-delay": "0.08s" }}>
-                    <Network size={14} />
-                    {slide.panelTitle}
-                  </div>
-
-                  <ol className="ppt-notes-list">
-                    {slide.panelItems.map((item, noteIdx) => (
-                      <li
-                        key={`${slide.id}-note-${noteIdx}`}
-                        className="ppt-note-item"
-                        style={{ "--ppt-delay": `${0.16 + noteIdx * 0.06}s` }}
-                      >
-                        {item}
-                      </li>
-                    ))}
-                  </ol>
-
-                  <div className="ppt-notes-footer ppt-note-item" style={{ "--ppt-delay": "0.38s" }}>
-                    <span>Demo anchor</span>
-                    <span>{slide.navLabel}</span>
-                  </div>
-                </aside>
               </div>
             </section>
           );
