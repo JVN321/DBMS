@@ -37,18 +37,18 @@ const SLIDES = [
     id: "problem",
     navLabel: "Problem",
     kicker: "Slide 01  Problem",
-    title: "Fraud Signals Hide in Graph Structure",
+    title: "Flat Transaction Logs Miss Multi-Hop Risk",
     mainIdea:
-      "Row-level transaction views miss multi-hop behavior, making fast fraud triage difficult.",
+      "Critical fraud signals emerge from topology and timing, not isolated rows.",
     bullets: [
-      "Layering patterns span chains, not single rows.",
-      "Manual tracing slows investigations and misses context.",
-      "Analysts need explainable, relationship-first views.",
+      "Circular and relay behavior is hard to see in tabular views.",
+      "Manual tracing is slow and inconsistent across analysts.",
+      "Investigations need graph evidence plus ranked priority.",
     ],
     metrics: [
-      { label: "Primary Gap", value: "No topology context" },
-      { label: "Review Pain", value: "Manual tracing" },
-      { label: "Needed", value: "Graph evidence" },
+      { label: "Signal Type", value: "Topology + Time" },
+      { label: "Current State", value: "Manual tracing" },
+      { label: "Target", value: "Fast triage" },
     ],
     panelTitle: "Speaker Cues",
     panelItems: [
@@ -62,18 +62,18 @@ const SLIDES = [
     id: "flow",
     navLabel: "Flow",
     kicker: "Slide 02  Workflow",
-    title: "DBMS Workflow in Four Steps",
+    title: "Pipeline Produces Evidence in Minutes",
     mainIdea:
-      "Upload, detect, score, and investigate in one connected operational flow.",
+      "DBMS ingests raw transactions, builds a Neo4j graph, and serves scored investigation views.",
     bullets: [
-      "Ingest CSV or JSON and normalize fields.",
-      "Run detector queries and compute risk.",
-      "Inspect wallets, paths, and clusters in context.",
+      "Ingestion uses UNWIND + MERGE for idempotent writes.",
+      "Graph model stores wallets, transfers, and coin usage.",
+      "Fastify endpoints power graph, suspicious, and wallet views.",
     ],
     metrics: [
       { label: "Backend", value: "Fastify" },
-      { label: "Graph Store", value: "Neo4j" },
-      { label: "UI", value: "Next.js" },
+      { label: "Database", value: "Neo4j" },
+      { label: "Batch Ingest", value: "1,000 tx" },
     ],
     panelTitle: "Speaker Cues",
     panelItems: [
@@ -87,18 +87,18 @@ const SLIDES = [
     id: "schema",
     navLabel: "Model",
     kicker: "Slide 03  Data Model",
-    title: "Schema Built for Traceable Fund Flow",
+    title: "Schema Preserves Identity and Traceability",
     mainIdea:
-      "A compact graph model keeps ingestion idempotent and investigations queryable.",
+      "A compact schema keeps data clean, deduplicated, and query-ready for forensics.",
     bullets: [
-      "Wallet, Coin, and User nodes model the core entities.",
-      "TRANSFER and USES edges capture movement and asset context.",
-      "Unique constraints prevent duplicate identities.",
+      "Nodes: Wallet(address), Coin(name), User(username,email).",
+      "Edges: TRANSFER(txid, amount, timestamp, coin_type), USES.",
+      "Constraints + indexes support fast hash and time lookup.",
     ],
     metrics: [
-      { label: "Node Types", value: "3" },
-      { label: "Edge Types", value: "2" },
-      { label: "Batch Size", value: "1,000 tx" },
+      { label: "Node Labels", value: "3" },
+      { label: "Relationship Types", value: "2" },
+      { label: "Unique Constraints", value: "4" },
     ],
     panelTitle: "Speaker Cues",
     panelItems: [
@@ -112,18 +112,18 @@ const SLIDES = [
     id: "detection",
     navLabel: "Detect",
     kicker: "Slide 04  Detection",
-    title: "Detection Targets Real Fraud Motifs",
+    title: "Cypher Queries Detect Five Fraud Motifs",
     mainIdea:
-      "Cypher-based detectors surface motifs investigators already recognize in laundering behavior.",
+      "Each detector maps to a known laundering behavior and returns explainable wallet flags.",
     bullets: [
-      "Circular, fan-out, fan-in, rapid relay, and dense cluster checks.",
-      "Defaults are tuned for practical first-pass triage.",
-      "Each flag is explainable and query-backed.",
+      "Circular: MATCH path=(w)-[:TRANSFER*2..6]->(w).",
+      "Fan-out/fan-in/cluster: degree thresholds on TRANSFER edges.",
+      "Rapid: A->B->C within windowSeconds (default 60).",
     ],
     metrics: [
-      { label: "Detector Count", value: "5" },
-      { label: "Rapid Window", value: "60s" },
-      { label: "Output", value: "Flagged wallets" },
+      { label: "API Route", value: "GET /suspicious" },
+      { label: "Detector Types", value: "5" },
+      { label: "Default Window", value: "60s" },
     ],
     panelTitle: "Speaker Cues",
     panelItems: [
@@ -137,18 +137,18 @@ const SLIDES = [
     id: "scoring",
     navLabel: "Score",
     kicker: "Slide 05  Risk Scoring",
-    title: "One Score for Fast Investigation Priority",
+    title: "Risk Score Ranks Investigation Priority",
     mainIdea:
-      "A 0-100 composite score turns graph complexity into an actionable investigation queue.",
+      "A 0-100 composite score converts graph complexity into a triage queue.",
     bullets: [
-      "Blend fan-out, fan-in, cycles, and total degree.",
-      "Cycle contribution is weighted highest.",
-      "Bulk scoring uses one database pass via UNWIND.",
+      "Formula blends fan-out, fan-in, cycles, and total degree.",
+      "Cycle term has highest cap (30) for obfuscation risk.",
+      "UNWIND bulk scoring avoids N+1 wallet queries.",
     ],
     metrics: [
-      { label: "Score Range", value: "0 to 100" },
-      { label: "Top Factor", value: "Cycle signal" },
-      { label: "Use", value: "Triage order" },
+      { label: "Score Range", value: "0-100" },
+      { label: "Factors", value: "4" },
+      { label: "Execution", value: "Single query" },
     ],
     panelTitle: "Speaker Cues",
     panelItems: [
@@ -162,18 +162,18 @@ const SLIDES = [
     id: "visual",
     navLabel: "Visualize",
     kicker: "Slide 06  Graph View",
-    title: "Visual Layer Keeps Signal Readable",
+    title: "Visualization Encodes Risk and Volume Clearly",
     mainIdea:
-      "Graph rendering emphasizes meaningful contrast so both small and large behaviors stay visible.",
+      "Rendering choices preserve weak and strong signals in the same investigation view.",
     bullets: [
-      "Log scaling prevents high-volume wallets from flattening the view.",
-      "Community mode and risk mode answer different questions.",
-      "Path tracing supports explainable movement analysis.",
+      "Risk mode colors by score; cluster mode colors by Louvain ID.",
+      "Z-axis maps log-normalized transaction volume.",
+      "Edge width uses log(amount+1) for readable magnitude.",
     ],
     metrics: [
-      { label: "View Modes", value: "Risk and Cluster" },
-      { label: "Z Mapping", value: "Volume based" },
-      { label: "Goal", value: "Readable context" },
+      { label: "View Modes", value: "2" },
+      { label: "Layout", value: "2D + 3D" },
+      { label: "Community", value: "Louvain" },
     ],
     panelTitle: "Speaker Cues",
     panelItems: [
@@ -187,18 +187,18 @@ const SLIDES = [
     id: "ops",
     navLabel: "Operate",
     kicker: "Slide 07  Security",
-    title: "Role-Based Access Keeps Operations Safe",
+    title: "Role-Based Access Protects Operations",
     mainIdea:
       "Permissions separate analyst work from administrative actions without slowing investigations.",
     bullets: [
-      "Users investigate graph, suspicious patterns, and wallets.",
-      "Admins upload data, manage users, and adjust system settings.",
-      "JWT access control is enforced across protected routes.",
+      "User role: graph, suspicious analysis, wallet inspection.",
+      "Admin role: uploads, user management, logs, settings.",
+      "JWT guards all protected endpoints.",
     ],
     metrics: [
       { label: "Roles", value: "Admin and User" },
       { label: "Token TTL", value: "24h" },
-      { label: "Access Model", value: "Route guards" },
+      { label: "Endpoint Guard", value: "JWT middleware" },
     ],
     panelTitle: "Speaker Cues",
     panelItems: [
@@ -212,13 +212,13 @@ const SLIDES = [
     id: "close",
     navLabel: "Demo",
     kicker: "Slide 08  Demonstration",
-    title: "Demo Sequence for Stakeholders",
+    title: "Demo: From Query to Decision",
     mainIdea:
       "Follow one concise run: load data, flag risk, inspect wallet, explain decision.",
     bullets: [
-      "Upload sample file and confirm graph growth.",
-      "Run one detector and review suspicious results.",
-      "Open a wallet profile and justify the risk score.",
+      "Upload sample data and confirm ingestion count.",
+      "Run /suspicious?type=circular and inspect flagged wallets.",
+      "Open /wallet/:address and explain score contributors.",
     ],
     metrics: [
       { label: "Slide Count", value: "8" },
@@ -416,10 +416,6 @@ export default function LandingPagePresentation() {
                     <p className="ppt-main-idea-label">Main idea</p>
                     <p className="ppt-main-idea-text">{slide.mainIdea}</p>
                   </div>
-
-                  <p className="ppt-audience-heading ppt-anim-item" style={{ "--ppt-delay": "0.2s" }}>
-                    Audience takeaway
-                  </p>
 
                   <ul className="ppt-bullet-list">
                     {slide.bullets.map((bullet, bulletIdx) => (

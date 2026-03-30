@@ -1846,15 +1846,6 @@ body {
   color: #e6f2ff;
 }
 
-.ppt-audience-heading {
-  margin: 0.9rem 0 0;
-  font-size: 0.62rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: rgba(159, 176, 202, 0.96);
-  font-family: var(--font-ppt-mono), "IBM Plex Mono", "JetBrains Mono", monospace;
-}
-
 .ppt-detail-grid {
   margin-top: 1rem;
   display: grid;
@@ -1886,7 +1877,7 @@ body {
 }
 
 .ppt-bullet-list {
-  margin: 0.52rem 0 0;
+  margin: 0.86rem 0 0;
   padding-left: 1.15rem;
   display: grid;
   gap: 0.5rem;
