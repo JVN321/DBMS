@@ -3,11 +3,13 @@
 ## Nodes
 
 ### `Wallet`
-Represents a cryptocurrency wallet address.
+Represents a cryptocurrency wallet address scoped to a dataset.
 
 | Property | Type | Notes |
 |---|---|---|
-| `address` | `String` | **Unique** — primary identifier |
+| `wallet_key` | `String` | **Unique** — primary identifier (`address__dataset_id`) |
+| `address` | `String` | Blockchain wallet address |
+| `dataset_id`| `String` | Reference to the dataset this wallet belongs to |
 
 ---
 
@@ -35,6 +37,19 @@ Represents an application user account.
 
 ---
 
+### `UserDataset`
+Represents a dataset uploaded by a user.
+
+| Property | Type | Notes |
+|---|---|---|
+| `id` | `String` | **Unique** — dataset identifier |
+| `name` | `String` | Dataset name |
+| `description`| `String` | Optional description |
+| `is_public` | `Boolean` | Whether the dataset is shared globally |
+| `created_at` | `String` | ISO 8601 timestamp |
+
+---
+
 ## Relationships
 
 ### `TRANSFER` — `(Wallet)-[:TRANSFER]->(Wallet)`
@@ -42,9 +57,10 @@ Represents a single on-chain transaction from one wallet to another.
 
 | Property | Type | Notes |
 |---|---|---|
-| `txid` | `String` | **Unique per edge** — transaction ID / hash |
-| `amount` | `Float` | Value transferred (in the coin's base unit, ETH for BigQuery data) |
-| `value_lossless` | `String` | Raw Wei string (BigQuery imports) — preserved to avoid float precision loss |
+| `txid` | `String` | **Indexed** — transaction ID / hash |
+| `dataset_id`| `String` | Reference to the owning dataset |
+| `amount` | `Float` | Value transferred |
+| `value_lossless` | `String` | Raw Wei string (BigQuery imports) |
 | `timestamp` | `String` | ISO 8601 timestamp of the block |
 | `coin_type` | `String` | e.g. `"ETH"`, `"BTC"` |
 
@@ -56,14 +72,21 @@ No properties.
 
 ---
 
+### `OWNS` — `(User)-[:OWNS]->(UserDataset)`
+Connects a user to datasets they uploaded.
+No properties.
+
+---
+
 ## Constraints
 
 | Name | Target | Rule |
 |---|---|---|
-| `wallet_address` | `Wallet.address` | IS UNIQUE |
+| `wallet_key` | `Wallet.wallet_key` | IS UNIQUE |
 | `coin_name` | `Coin.name` | IS UNIQUE |
 | `user_username` | `User.username` | IS UNIQUE |
 | `user_email` | `User.email` | IS UNIQUE |
+| `user_dataset_id` | `UserDataset.id` | IS UNIQUE |
 
 ---
 
@@ -73,27 +96,32 @@ No properties.
 |---|---|---|
 | `transfer_timestamp` | `TRANSFER.timestamp` | Fast time-range filtering |
 | `transfer_txid` | `TRANSFER.txid` | Fast lookup by transaction hash |
+| `wallet_dataset_id` | `Wallet.dataset_id` | Scoping queries by dataset |
+| `transfer_dataset_id` | `TRANSFER.dataset_id`| Scoping queries by dataset |
 | `user_created_at` | `User.created_at` | Sorting/filtering users by registration date |
 
 ---
 
 ## Ingestion Cypher
 
-Transactions are written in batches of 1 000 using `MERGE` to guarantee idempotency — re-uploading the same file will not create duplicate nodes or edges.
+Transactions are written in batches of 1 000 using `MERGE` to guarantee idempotency.
 
 ```cypher
 UNWIND $transactions AS tx
-MERGE (from:Wallet {address: tx.wallet_from})
-MERGE (to:Wallet   {address: tx.wallet_to})
-MERGE (c:Coin      {name: tx.coin_type})
+MERGE (from:Wallet {wallet_key: tx.wallet_from + '__' + $datasetId})
+ON CREATE SET from.address = tx.wallet_from, from.dataset_id = $datasetId
+MERGE (to:Wallet {wallet_key: tx.wallet_to + '__' + $datasetId})
+ON CREATE SET to.address = tx.wallet_to, to.dataset_id = $datasetId
+MERGE (c:Coin {name: tx.coin_type})
 MERGE (from)-[:USES]->(c)
 MERGE (to)-[:USES]->(c)
-MERGE (from)-[t:TRANSFER {txid: tx.transaction_id}]->(to)
+MERGE (from)-[t:TRANSFER {txid: tx.transaction_id, dataset_id: $datasetId}]->(to)
 ON CREATE SET
-  t.amount         = toFloat(tx.amount),
+  t.amount = toFloat(tx.amount),
   t.value_lossless = tx.value_lossless,
-  t.timestamp      = tx.timestamp,
-  t.coin_type      = tx.coin_type
+  t.timestamp = tx.timestamp,
+  t.coin_type = tx.coin_type,
+  t.dataset_id = $datasetId
 RETURN count(*) AS created
 ```
 

@@ -917,10 +917,10 @@ export default function LandingPage() {
 
           <div className="landing-pipeline">
             {[
-              { step: "01", icon: Database, title: "INGEST", desc: "Upload CSV/JSON transaction data. Parser auto-detects BigQuery Ethereum, standard formats, and normalizes Wei → ETH." },
-              { step: "02", icon: GitBranch, title: "GRAPH", desc: "Neo4j builds the wallet network. Wallets become nodes, transfers become edges with amount, timestamp, and coin type." },
-              { step: "03", icon: Cpu, title: "ANALYZE", desc: "Louvain community detection, fan-out/in scoring, circular transfer detection, and rapid-relay chain identification." },
-              { step: "04", icon: Eye, title: "VISUALIZE", desc: "Interactive 2D/3D graph with risk coloring, volume Z-axis, fraud layout mode, and temporal animation of transaction flow." },
+              { step: "01", icon: Database, title: "INGEST", desc: "Securely upload private or public CSV/JSON datasets. Your data is isolated to your own workspace. Parser auto-detects and normalizes formats." },
+              { step: "02", icon: GitBranch, title: "GRAPH", desc: "Neo4j builds isolated graphs per dataset. Wallets become nodes, transfers become edges with amount, timestamp, and coin type." },
+              { step: "03", icon: Cpu, title: "ANALYZE", desc: "Run independent analysis per dataset: Louvain community detection, scoring, circular transfer and relay chain detection." },
+              { step: "04", icon: Eye, title: "VISUALIZE", desc: "Interactive 2D/3D graph visualization. Admins can oversee system-wide metrics while users manage their own datasets." },
             ].map((item) => (
               <div key={item.step} className="landing-pipeline-step">
                 <div className="landing-pipeline-num">{item.step}</div>
@@ -980,7 +980,7 @@ export default function LandingPage() {
             </span>
             <h2 className="landing-section-title">Neo4j Graph Data Model</h2>
             <p className="landing-section-sub">
-              A directed multigraph where wallets are nodes, transactions are edges, and fraud signals emerge from topology rather than content.
+              A scalable multi-tenant graph where wallets and transactions are scoped to individual user datasets, ensuring privacy and supporting secure user-owned data uploads. Admin roles maintain broad platform oversight.
             </p>
           </div>
           <div className="landing-schema-layout">
@@ -994,9 +994,10 @@ export default function LandingPage() {
                   <span>Label</span><span>Key Property</span><span>Description</span>
                 </div>
                 {[
-                  { label: "Wallet", key: "address", desc: "Blockchain wallet — unique hash identifier", color: "text-cyan-400" },
+                  { label: "Wallet", key: "wallet_key", desc: "Blockchain wallet scoped to a dataset (address + dataset_id)", color: "text-cyan-400" },
                   { label: "Coin", key: "name", desc: "Crypto type: ETH, BTC, etc.", color: "text-amber-400" },
                   { label: "User", key: "username", desc: "App user — role, bcrypt hash, ban flag, preferences", color: "text-purple-400" },
+                  { label: "UserDataset", key: "id", desc: "Dataset uploaded by a user (metadata & access control)", color: "text-pink-400" },
                 ].map((n) => (
                   <div key={n.label} className="landing-schema-row">
                     <span className={`font-mono font-bold ${n.color}`}>{n.label}</span>
@@ -1017,8 +1018,9 @@ export default function LandingPage() {
                   <span>Type</span><span>Pattern</span><span>Key Properties</span>
                 </div>
                 {[
-                  { type: "TRANSFER", pattern: "(Wallet)→(Wallet)", props: "txid · amount · value_lossless · timestamp · coin_type", color: "text-red-400" },
+                  { type: "TRANSFER", pattern: "(Wallet)→(Wallet)", props: "txid · amount · value_lossless · timestamp · coin_type · dataset_id", color: "text-red-400" },
                   { type: "USES", pattern: "(Wallet)→(Coin)", props: "(none — structural edge only)", color: "text-zinc-500" },
+                  { type: "OWNS", pattern: "(User)→(UserDataset)", props: "(none — access control edge)", color: "text-blue-400" },
                 ].map((r) => (
                   <div key={r.type} className="landing-schema-row">
                     <span className={`font-mono font-bold ${r.color}`}>{r.type}</span>
@@ -1039,12 +1041,15 @@ export default function LandingPage() {
                   <span>Name</span><span>Target</span><span>Type</span>
                 </div>
                 {[
-                  { name: "wallet_address", target: "Wallet.address", type: "UNIQUE", color: "text-cyan-400" },
+                  { name: "wallet_key", target: "Wallet.wallet_key", type: "UNIQUE", color: "text-cyan-400" },
                   { name: "coin_name", target: "Coin.name", type: "UNIQUE", color: "text-amber-400" },
                   { name: "user_username", target: "User.username", type: "UNIQUE", color: "text-purple-400" },
                   { name: "user_email", target: "User.email", type: "UNIQUE", color: "text-purple-400" },
+                  { name: "user_dataset_id", target: "UserDataset.id", type: "UNIQUE", color: "text-pink-400" },
                   { name: "transfer_timestamp", target: "TRANSFER.timestamp", type: "INDEX", color: "text-zinc-400" },
                   { name: "transfer_txid", target: "TRANSFER.txid", type: "INDEX", color: "text-zinc-400" },
+                  { name: "wallet_dataset_id", target: "Wallet.dataset_id", type: "INDEX", color: "text-cyan-400" },
+                  { name: "transfer_dataset_id", target: "TRANSFER.dataset_id", type: "INDEX", color: "text-red-400" },
                 ].map((c) => (
                   <div key={c.name} className="landing-schema-row">
                     <span className={`font-mono text-[10px] ${c.color}`}>{c.name}</span>
@@ -1061,20 +1066,23 @@ export default function LandingPage() {
                 <Code2 size={14} /> INGESTION CYPHER — idempotent batch of 1 000 transactions
               </div>
               <pre className="landing-cypher-block">{`UNWIND $transactions AS tx
-MERGE (from:Wallet {address: tx.wallet_from})
-MERGE (to:Wallet   {address: tx.wallet_to})
-MERGE (c:Coin      {name: tx.coin_type})
+MERGE (from:Wallet {wallet_key: tx.wallet_from + '__' + $datasetId})
+ON CREATE SET from.address = tx.wallet_from, from.dataset_id = $datasetId
+MERGE (to:Wallet {wallet_key: tx.wallet_to + '__' + $datasetId})
+ON CREATE SET to.address = tx.wallet_to, to.dataset_id = $datasetId
+MERGE (c:Coin {name: tx.coin_type})
 MERGE (from)-[:USES]->(c)
 MERGE (to)-[:USES]->(c)
-MERGE (from)-[t:TRANSFER {txid: tx.transaction_id}]->(to)
+MERGE (from)-[t:TRANSFER {txid: tx.transaction_id, dataset_id: $datasetId}]->(to)
 ON CREATE SET
-  t.amount         = toFloat(tx.amount),
+  t.amount = toFloat(tx.amount),
   t.value_lossless = tx.value_lossless,
-  t.timestamp      = tx.timestamp,
-  t.coin_type      = tx.coin_type
+  t.timestamp = tx.timestamp,
+  t.coin_type = tx.coin_type,
+  t.dataset_id = $datasetId
 RETURN count(*) AS created`}</pre>
               <p className="text-[10px] text-zinc-600 font-mono mt-2">
-                MERGE on txid guarantees idempotency — re-uploading the same CSV creates no duplicate nodes or edges.
+                MERGE on wallet_key and txid guarantees idempotency per dataset — re-uploading the same CSV creates no duplicate nodes or edges. Users have complete control over their datasets.
               </p>
             </div>
           </div>

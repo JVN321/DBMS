@@ -1431,3 +1431,60 @@ body {
     padding-top: 0.25rem;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   PRINT & PRESENTATION MODE
+   ══════════════════════════════════════════════════════════════════ */
+@media print {
+  body, html {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background: #000 !important;
+  }
+  
+  /* Hide noisy elements */
+  .landing-nav,
+  .no-print,
+  .cursor-dot, .cursor-ring, .cursor-bracket, .cursor-label,
+  .cyber-network-bg,
+  .landing-scanlines,
+  .shader-intro-overlay,
+  .shader-intro-scanlines,
+  .landing-demo-video-scanlines {
+    display: none !important;
+  }
+  
+  /* Sections formatting for slides */
+  .landing-hero,
+  .landing-section {
+    position: relative;
+    page-break-after: always;
+    break-after: always;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    background: #000 !important;
+    padding-top: 5vh;
+    padding-bottom: 5vh;
+  }
+  
+  /* Additional fix for background artifacts */
+  .landing-section-alt {
+    background: #050505 !important;
+  }
+
+  @page {
+    size: 16in 9in;
+    margin: 0;
+  }
+}
+
+/* Fallback print-mode class (if user just wants layout in browser) */
+.print-mode .cyber-network-bg,
+.print-mode .landing-scanlines,
+.print-mode .shader-intro-overlay,
+.print-mode .landing-demo-video-scanlines,
+.print-mode .shader-intro-scanlines {
+  display: none !important;
+}
+
