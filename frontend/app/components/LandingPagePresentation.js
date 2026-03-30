@@ -32,208 +32,58 @@ const monoFont = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
-const SLIDES = [
-  {
-    id: "problem",
-    navLabel: "Problem",
-    kicker: "Slide 01  Problem",
-    title: "Flat Transaction Logs Miss Multi-Hop Risk",
-    mainIdea:
-      "Critical fraud signals emerge from topology and timing, not isolated rows.",
-    bullets: [
-      "Circular and relay behavior is hard to see in tabular views.",
-      "Manual tracing is slow and inconsistent across analysts.",
-      "Investigations need graph evidence plus ranked priority.",
-    ],
-    metrics: [
-      { label: "Signal Type", value: "Topology + Time" },
-      { label: "Current State", value: "Manual tracing" },
-      { label: "Target", value: "Fast triage" },
-    ],
-    panelTitle: "Speaker Cues",
-    panelItems: [
-      "Start with the investigation bottleneck.",
-      "Explain why rows hide laundering signals.",
-      "Set up DBMS as a graph-first answer.",
-    ],
-    icon: ShieldAlert,
-  },
-  {
-    id: "flow",
-    navLabel: "Flow",
-    kicker: "Slide 02  Workflow",
-    title: "Pipeline Produces Evidence in Minutes",
-    mainIdea:
-      "DBMS ingests raw transactions, builds a Neo4j graph, and serves scored investigation views.",
-    bullets: [
-      "Ingestion uses UNWIND + MERGE for idempotent writes.",
-      "Graph model stores wallets, transfers, and coin usage.",
-      "Fastify endpoints power graph, suspicious, and wallet views.",
-    ],
-    metrics: [
-      { label: "Backend", value: "Fastify" },
-      { label: "Database", value: "Neo4j" },
-      { label: "Batch Ingest", value: "1,000 tx" },
-    ],
-    panelTitle: "Speaker Cues",
-    panelItems: [
-      "Keep this slide as the mental map.",
-      "Do not go deep on internals yet.",
-      "Transition into data model next.",
-    ],
-    icon: Database,
-  },
-  {
-    id: "schema",
-    navLabel: "Model",
-    kicker: "Slide 03  Data Model",
-    title: "Schema Preserves Identity and Traceability",
-    mainIdea:
-      "A compact schema keeps data clean, deduplicated, and query-ready for forensics.",
-    bullets: [
-      "Nodes: Wallet(address), Coin(name), User(username,email).",
-      "Edges: TRANSFER(txid, amount, timestamp, coin_type), USES.",
-      "Constraints + indexes support fast hash and time lookup.",
-    ],
-    metrics: [
-      { label: "Node Labels", value: "3" },
-      { label: "Relationship Types", value: "2" },
-      { label: "Unique Constraints", value: "4" },
-    ],
-    panelTitle: "Speaker Cues",
-    panelItems: [
-      "Mention idempotent MERGE behavior.",
-      "Keep schema explanation to 30-40 seconds.",
-      "Bridge into detector logic.",
-    ],
-    icon: Layers,
-  },
-  {
-    id: "detection",
-    navLabel: "Detect",
-    kicker: "Slide 04  Detection",
-    title: "Cypher Queries Detect Five Fraud Motifs",
-    mainIdea:
-      "Each detector maps to a known laundering behavior and returns explainable wallet flags.",
-    bullets: [
-      "Circular: MATCH path=(w)-[:TRANSFER*2..6]->(w).",
-      "Fan-out/fan-in/cluster: degree thresholds on TRANSFER edges.",
-      "Rapid: A->B->C within windowSeconds (default 60).",
-    ],
-    metrics: [
-      { label: "API Route", value: "GET /suspicious" },
-      { label: "Detector Types", value: "5" },
-      { label: "Default Window", value: "60s" },
-    ],
-    panelTitle: "Speaker Cues",
-    panelItems: [
-      "Use one detector example only.",
-      "Avoid reading all rule names aloud.",
-      "Transition to risk prioritization.",
-    ],
-    icon: Activity,
-  },
-  {
-    id: "scoring",
-    navLabel: "Score",
-    kicker: "Slide 05  Risk Scoring",
-    title: "Risk Score Ranks Investigation Priority",
-    mainIdea:
-      "A 0-100 composite score converts graph complexity into a triage queue.",
-    bullets: [
-      "Formula blends fan-out, fan-in, cycles, and total degree.",
-      "Cycle term has highest cap (30) for obfuscation risk.",
-      "UNWIND bulk scoring avoids N+1 wallet queries.",
-    ],
-    metrics: [
-      { label: "Score Range", value: "0-100" },
-      { label: "Factors", value: "4" },
-      { label: "Execution", value: "Single query" },
-    ],
-    panelTitle: "Speaker Cues",
-    panelItems: [
-      "Explain score as a prioritization tool.",
-      "Do not present it as final verdict.",
-      "Bridge to graph interpretation.",
-    ],
-    icon: BarChart3,
-  },
-  {
-    id: "visual",
-    navLabel: "Visualize",
-    kicker: "Slide 06  Graph View",
-    title: "Visualization Encodes Risk and Volume Clearly",
-    mainIdea:
-      "Rendering choices preserve weak and strong signals in the same investigation view.",
-    bullets: [
-      "Risk mode colors by score; cluster mode colors by Louvain ID.",
-      "Z-axis maps log-normalized transaction volume.",
-      "Edge width uses log(amount+1) for readable magnitude.",
-    ],
-    metrics: [
-      { label: "View Modes", value: "2" },
-      { label: "Layout", value: "2D + 3D" },
-      { label: "Community", value: "Louvain" },
-    ],
-    panelTitle: "Speaker Cues",
-    panelItems: [
-      "Frame visual choices as analyst aids.",
-      "Mention why log scaling matters.",
-      "Transition to access and operations.",
-    ],
-    icon: Network,
-  },
-  {
-    id: "ops",
-    navLabel: "Operate",
-    kicker: "Slide 07  Security",
-    title: "Role-Based Access Protects Operations",
-    mainIdea:
-      "Permissions separate analyst work from administrative actions without slowing investigations.",
-    bullets: [
-      "User role: graph, suspicious analysis, wallet inspection.",
-      "Admin role: uploads, user management, logs, settings.",
-      "JWT guards all protected endpoints.",
-    ],
-    metrics: [
-      { label: "Roles", value: "Admin and User" },
-      { label: "Token TTL", value: "24h" },
-      { label: "Endpoint Guard", value: "JWT middleware" },
-    ],
-    panelTitle: "Speaker Cues",
-    panelItems: [
-      "Keep this governance-focused.",
-      "Mention admin-only upload flow.",
-      "Transition to live demo steps.",
-    ],
-    icon: Lock,
-  },
-  {
-    id: "close",
-    navLabel: "Demo",
-    kicker: "Slide 08  Demonstration",
-    title: "Demo: From Query to Decision",
-    mainIdea:
-      "Follow one concise run: load data, flag risk, inspect wallet, explain decision.",
-    bullets: [
-      "Upload sample data and confirm ingestion count.",
-      "Run /suspicious?type=circular and inspect flagged wallets.",
-      "Open /wallet/:address and explain score contributors.",
-    ],
-    metrics: [
-      { label: "Slide Count", value: "8" },
-      { label: "Demo Time", value: "6-8 min" },
-      { label: "Outcome", value: "Actionable insight" },
-    ],
-    panelTitle: "Speaker Cues",
-    panelItems: [
-      "End on decision speed and clarity.",
-      "Invite questions before launching console.",
-      "Replay from slide one if needed.",
-    ],
-    icon: Clock,
-  },
-];
+import { SLIDES } from "./slidesData";
+
+const SubSlider = ({ subSlides }) => {
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  return (
+    <div className="ppt-anim-item mt-6 relative overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900/50 p-6 backdrop-blur-md shadow-2xl" style={{ "--ppt-delay": "0.40s" }}>
+      <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
+        <h3 className="text-xl font-bold tracking-tight text-white flex items-center gap-3">
+           <span className="bg-blue-600/20 text-blue-400 py-1 px-3 rounded-md text-sm uppercase tracking-wider">{subSlides[activeIdx].type}</span>
+           {subSlides[activeIdx].title}
+        </h3>
+        <div className="flex gap-2 items-center">
+           <button onClick={() => setActiveIdx(i => Math.max(0, i-1))} disabled={activeIdx === 0} className="p-2 hover:bg-white/10 rounded-full text-white disabled:opacity-30 transition-all"><ArrowLeft size={16}/></button>
+           <span className="text-sm text-slate-400 font-mono py-2">{activeIdx + 1} / {subSlides.length}</span>
+           <button onClick={() => setActiveIdx(i => Math.min(subSlides.length-1, i+1))} disabled={activeIdx === subSlides.length - 1} className="p-2 hover:bg-white/10 rounded-full text-white disabled:opacity-30 transition-all"><ArrowRight size={16}/></button>
+        </div>
+      </div>
+      
+      <div className="relative" style={{ minHeight: "340px" }}>
+        {subSlides.map((sub, idx) => (
+          <div 
+            key={sub.id} 
+            className="absolute inset-x-0 top-0 transition-all duration-500 ease-in-out flex flex-col"
+            style={{
+              opacity: activeIdx === idx ? 1 : 0,
+              transform: activeIdx === idx ? "translateY(0) scale(1)" : activeIdx > idx ? "translateY(-40px) scale(0.95)" : "translateY(40px) scale(0.95)",
+              pointerEvents: activeIdx === idx ? "auto" : "none",
+              zIndex: activeIdx === idx ? 10 : 0
+            }}
+          >
+            <p className="text-slate-300 text-[15px] mb-4 leading-relaxed">{sub.description}</p>
+            <div className="ppt-code-block w-full flex-grow overflow-auto" style={{ margin: 0, padding: '1rem', background: '#0f172a', border: '1px solid #1e293b' }}>
+              <pre><code className="text-sm text-blue-300">{sub.code}</code></pre>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="flex justify-center gap-2 mt-4 pt-4 border-t border-white/10 relative z-20">
+        {subSlides.map((_, idx) => (
+           <button 
+             key={idx} 
+             onClick={() => setActiveIdx(idx)}
+             className={`h-1.5 rounded-full transition-all duration-300 ${activeIdx === idx ? 'w-8 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'w-2 bg-slate-600 hover:bg-slate-400'}`}
+             aria-label={`Go to subslide ${idx + 1}`}
+           />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function LandingPagePresentation() {
   const router = useRouter();
@@ -399,7 +249,7 @@ export default function LandingPagePresentation() {
               id={slide.id}
               className={`ppt-slide ${index === activeSlide ? "is-active" : ""}`}
             >
-              <div className="ppt-slide-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '800px', margin: '0 auto' }}>
+              <div className="ppt-slide-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '1100px', margin: '0 auto' }}>
                 <article className="ppt-card">
                   <span className="ppt-kicker ppt-anim-item" style={{ "--ppt-delay": "0.04s" }}>
                     <Icon size={14} />
@@ -423,22 +273,18 @@ export default function LandingPagePresentation() {
                         style={{ "--ppt-delay": `${0.26 + bulletIdx * 0.055}s` }}
                       >
                         {bullet}
-                      </li>
-                    ))}
-                  </ul>
+                      </li>                      ))}
+                    </ul>
 
-                  <div className="ppt-metrics-grid">
-                    {slide.metrics.map((metric, metricIdx) => (
-                      <div
-                        key={`${slide.id}-metric-${metric.label}`}
-                        className="ppt-metric-card ppt-anim-item"
-                        style={{ "--ppt-delay": `${0.36 + metricIdx * 0.05}s` }}
-                      >
-                        <span className="ppt-metric-value">{metric.value}</span>
-                        <span className="ppt-metric-label">{metric.label}</span>
+                    {slide.code && (
+                      <div className="ppt-code-block ppt-anim-item" style={{ "--ppt-delay": "0.45s" }}>
+                        <pre><code>{slide.code}</code></pre>
                       </div>
-                    ))}
-                  </div>
+                    )}
+
+                    {slide.subSlides && (
+                      <SubSlider subSlides={slide.subSlides} />
+                    )}
 
                   {index === 0 && (
                     <div className="ppt-inline-actions ppt-anim-item" style={{ "--ppt-delay": "0.58s" }}>
@@ -474,3 +320,9 @@ export default function LandingPagePresentation() {
     </div>
   );
 }
+
+
+
+
+
+

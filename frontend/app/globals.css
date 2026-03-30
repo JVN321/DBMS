@@ -1781,27 +1781,19 @@ body {
   animation-delay: var(--ppt-delay, 0.08s);
 }
 
-@keyframes ppt-slide-rise {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-@keyframes ppt-item-rise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
   to {
     opacity: 1;
     transform: translateY(0);
   }
-}
+
+
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
 
 .ppt-kicker {
   display: inline-flex;
@@ -2109,3 +2101,20 @@ body {
     transition: none !important;
   }
 }
+.ppt-code-block {
+  margin-top: 1.5rem;
+  background-color: #111;
+  border-radius: 6px;
+  border: 1px solid #333;
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: monospace;
+  color: #a3e635;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+\.ppt-code-block pre {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+    @keyframes ppt-slide-rise { 0% { opacity: 0; transform: scale(0.85) translate(100px, 100px) perspective(1200px) rotateX(20deg) rotateY(-15deg); filter: blur(20px); } 100% { opacity: 1; transform: scale(1) translate(0, 0) perspective(1200px) rotateX(0deg) rotateY(0deg); filter: blur(0px); } } @keyframes ppt-item-rise { from { opacity: 0; transform: scale(0.9) translate(60px, 40px) skewX(5deg); filter: blur(10px); } to { opacity: 1; transform: scale(1) translate(0, 0) skewX(0deg); filter: blur(0px); } }
