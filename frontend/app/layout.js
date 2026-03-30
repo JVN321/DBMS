@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
-import FloatingBackground from "./components/FloatingBackground";
+import VideoBackground from "./components/VideoBackground";
 import MainWrapper from "./components/MainWrapper";
 import { AuthProvider } from "@/lib/authContext";
 
@@ -28,7 +28,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <AuthProvider>
-          <FloatingBackground />
+          <VideoBackground />
           <Sidebar />
           <MainWrapper>{children}</MainWrapper>
         </AuthProvider>

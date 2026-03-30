@@ -21,10 +21,10 @@ import {
   Globe,
 } from "lucide-react";
 
-import CyberNetworkCanvas from "./CyberNetworkCanvas";
+import VideoBackground from "./VideoBackground";
 import { ShaderAnimation } from "./ShaderLines";
 
-// Legacy NetworkCanvas replaced by CyberNetworkCanvas
+// Legacy NetworkCanvas replaced by VideoBackground
 /*
 function NetworkCanvas({ className }) {
   const canvasRef = useRef(null);
@@ -698,7 +698,7 @@ export default function LandingPage() {
       <>
       {/* ════════════ Full-screen cyber network background ════════════ */}
       <div className="cyber-network-bg" aria-hidden="true">
-        <CyberNetworkCanvas variant="forensic" />
+        <VideoBackground videoSrc="/asset/background.mp4" />
       </div>
 
       <ScanlineOverlay />

@@ -18,7 +18,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
-import CyberNetworkCanvas from "./CyberNetworkCanvas";
+import VideoBackground from "./VideoBackground";
 
 const headingFont = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -327,7 +327,7 @@ export default function LandingPagePresentation() {
   return (
     <div className={`ppt-root ${headingFont.variable} ${monoFont.variable}`}>
       <div className="ppt-network-bg" aria-hidden="true">
-        <CyberNetworkCanvas />
+        <VideoBackground videoSrc="/asset/background.mp4" />
       </div>
       <div className="ppt-atmosphere" aria-hidden="true" />
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
 import { AlertCircle, Eye, EyeOff, ShieldAlert, Terminal, UserPlus } from 'lucide-react';
-import CyberNetworkCanvas from '@/app/components/CyberNetworkCanvas';
+import VideoBackground from '@/app/components/VideoBackground';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -68,7 +68,7 @@ export default function LoginPage() {
 
       {/* ── Cyber network background ── */}
       <div className="fixed inset-0 z-0 pointer-events-none" style={{ opacity: 0.4 }}>
-        <CyberNetworkCanvas />
+        <VideoBackground />
       </div>
 
       {/* ── Scanlines ── */}
