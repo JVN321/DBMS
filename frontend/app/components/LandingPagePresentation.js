@@ -18,8 +18,6 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
-import VideoBackground from "./VideoBackground";
-
 const headingFont = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-ppt-heading",

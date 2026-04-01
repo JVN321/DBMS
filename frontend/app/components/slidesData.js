@@ -18,9 +18,9 @@ export const SLIDES = [
     title: "Blockchain Transaction Graph Analysis using Neo4j",
     mainIdea: "Project Team Members (Muthoot Institute of Technology and Science):",
     bullets: [
-      "Aman Antony Regno MUT24CA013",
+      "Aman Antony MUT24CA013",
       "John Varghese Nettady MUT24CA044",
-      "Sam Sunny Regno MUT24CA064",
+      "Sam Sunny MUT24CA064",
       "Sangeetha Shalom Saji MUT24CA065"
     ],
     icon: Database,
@@ -29,7 +29,7 @@ export const SLIDES = [
     id: "slide2",
     navLabel: "Problem Definition",
     kicker: "02 Context",
-    title: "Relational DBs vs Graph Theory",
+    title: "Relational DBs vs NoSQL Graphs  ",
     mainIdea: "Blockchain data spans millions of nested interactions. SQL struggles with variable deep path tracing.",
     bullets: [
       "Multi-Hop JOINs: RDBMS architectures exponentially decay in performance when scaling beyond 3-degree peer connections.",

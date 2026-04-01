@@ -62,13 +62,14 @@ export default function LoginPage() {
   const inputClass =
     'w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-4 py-2.5 text-zinc-200 placeholder-zinc-600 text-sm font-mono focus:border-red-800 focus:outline-none focus:ring-1 focus:ring-red-900/40 transition-colors';
   const labelClass = 'block text-[10px] font-mono font-medium text-zinc-500 mb-1.5 tracking-[0.2em] uppercase';
+  const authVideoOpacity = 0.4;
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-black">
 
-      {/* ── Cyber network background ── */}
-      <div className="fixed inset-0 z-0 pointer-events-none" style={{ opacity: 0.4 }}>
-        <VideoBackground />
+      {/* ── Video background ── */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <VideoBackground videoOpacity={authVideoOpacity} overlayOpacity={0} />
       </div>
 
       {/* ── Scanlines ── */}

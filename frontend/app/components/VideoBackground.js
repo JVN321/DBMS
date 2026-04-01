@@ -2,7 +2,12 @@
 
 import { useEffect, useRef } from "react";
 
-export default function VideoBackground({ className, videoSrc = "/asset/background.mp4" }) {
+export default function VideoBackground({
+  className,
+  videoSrc = "/asset/background.mp4",
+  videoOpacity = 1,
+  overlayOpacity = 0.1,
+}) {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -29,11 +34,17 @@ export default function VideoBackground({ className, videoSrc = "/asset/backgrou
         playsInline
         className="w-full h-full object-cover opacity-100"
         style={{
+          opacity: videoOpacity,
           filter: "brightness(1) contrast(1.1)", // Optional: tweaks to make overlay text pop
         }}
       />
       {/* Optional dark overlay to ensure text readability */}
-      <div className="absolute inset-0 bg-black/10 z-10"></div>
+      {overlayOpacity > 0 && (
+        <div
+          className="absolute inset-0 z-10"
+          style={{ backgroundColor: `rgba(0, 0, 0, ${overlayOpacity})` }}
+        />
+      )}
     </div>
   );
 }
