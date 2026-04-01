@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
 /* ══════════════════════════════════════════════════════════════════
-   CUSTOM CURSOR — hide native cursor everywhere
+  CUSTOM CURSOR — hide native cursor only in explicit scope
    ══════════════════════════════════════════════════════════════════ */
-*, *::before, *::after {
+body .custom-cursor-scope,
+body .custom-cursor-scope *,
+body .custom-cursor-scope *::before,
+body .custom-cursor-scope *::after {
   cursor: none !important;
 }
 
@@ -512,7 +515,7 @@ body {
 .cyber-network-bg canvas {
   width: 100% !important;
   height: 100% !important;
-  opacity: 0.35;
+  opacity: 0.52;
 }
 
 /* ── Scanline overlay ── */
