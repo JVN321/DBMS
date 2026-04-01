@@ -14,8 +14,9 @@ import { useAuth } from "@/lib/authContext";
 const GraphViewer3D = dynamic(() => import("../components/GraphViewer3D"), { ssr: false });
 
 import { Suspense } from 'react';
+import { withAuth } from "@/lib/withAuth";
 
-export default function GraphExplorerPageWrapper() {
+function GraphExplorerPageWrapper() {
   return (
     <Suspense fallback={<div className="p-6 lg:p-8"><p className="text-muted text-sm">Loading graph explorer...</p></div>}>
       <GraphExplorerPage />
@@ -558,3 +559,4 @@ function GraphExplorerPage() {
     </div>
   );
 }
+export default withAuth(GraphExplorerPageWrapper);

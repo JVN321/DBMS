@@ -14,9 +14,14 @@ import {
   Box,
   Copy,
   Check,
+  Network,
+  ArrowRightFromLine,
+  ArrowRightToLine,
+  RefreshCw,
 } from "lucide-react";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { getWallet, getGraph } from "@/lib/api";
+import { withAuth } from "@/lib/withAuth";
 
 // Dynamic import — force-graph uses canvas/D3 APIs not available server-side
 const GraphViewer = dynamic(() => import("../../components/GraphViewer"), {
@@ -41,7 +46,7 @@ function formatETH(n) {
   return n.toLocaleString(undefined, { maximumFractionDigits: 8 });
 }
 
-export default function WalletDetailPage({ params }) {
+function WalletDetailPage({ params }) {
   const { address } = use(params);
   const decodedAddress = decodeURIComponent(address);
   const router = useRouter();
@@ -157,7 +162,7 @@ export default function WalletDetailPage({ params }) {
           icon={ShieldAlert}
           label="Risk Score"
           value={`${wallet.riskScore}/100`}
-          sub={riskLevel.toUpperCase()}
+          sub={wallet.riskType || riskLevel.toUpperCase()}
           color={
             riskLevel === "high"
               ? "text-danger"
@@ -218,6 +223,48 @@ export default function WalletDetailPage({ params }) {
             )}
           </div>
         )}
+
+      {/* Risk Analysis Section */}
+      {wallet.riskScore > 0 && wallet.riskDetails && (
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-semibold flex items-center gap-2">
+            <ShieldAlert size={16} className={
+              riskLevel === "high" ? "text-danger" : riskLevel === "medium" ? "text-warning" : "text-success"
+            } />
+            Risk Factors
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <MiniStat
+              icon={Network}
+              label="Total Connections"
+              value={wallet.riskDetails.totalDegree ?? '-'}
+              sub={wallet.riskReasoning?.find(r => r.includes("total transfers")) || "Overall transaction volume"}
+              color="text-accent"
+            />
+            <MiniStat
+              icon={ArrowRightFromLine}
+              label="Out Degree (Fan Out)"
+              value={wallet.riskDetails.outDegree ?? '-'}
+              sub={wallet.riskReasoning?.find(r => r.includes("fan-out")) || "Outgoing transfers"}
+              color="text-danger"
+            />
+            <MiniStat
+              icon={ArrowRightToLine}
+              label="In Degree (Fan In)"
+              value={wallet.riskDetails.inDegree ?? '-'}
+              sub={wallet.riskReasoning?.find(r => r.includes("fan-in")) || "Incoming transfers"}
+              color="text-success"
+            />
+            <MiniStat
+              icon={RefreshCw}
+              label="Circular Patterns"
+              value={wallet.riskDetails.cycles ?? '-'}
+              sub={wallet.riskReasoning?.find(r => r.includes("circular")) || "Laundering indicators"}
+              color="text-warning"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Transaction table */}
       <div>
@@ -342,3 +389,5 @@ function MiniStat({ icon: Icon, label, value, sub, color }) {
     </div>
   );
 }
+
+export default withAuth(WalletDetailPage);
