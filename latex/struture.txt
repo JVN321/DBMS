@@ -1,0 +1,40 @@
+Prepare a well-structured report explaining the design, implementation, and results of your project.
+Report Format ( Approximately 20 pages- spiral bind)Title Page
+
+Abstract
+
+
+Table of Contents
+
+
+Introduction
+
+
+Problem Statement
+
+
+System Analysis
+
+
+System Design
+
+
+Database Implementation
+
+
+User Interface
+
+
+Results and Discussion
+
+
+Conclusion
+
+
+Future Enhancements
+
+
+References
+SDGs Addressed
+
+Appendix
