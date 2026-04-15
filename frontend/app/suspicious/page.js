@@ -12,6 +12,7 @@ import {
   Users,
   Copy,
   Check,
+  Download,
 } from "lucide-react";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SearchBar from "../components/SearchBar";
@@ -120,6 +121,52 @@ function SuspiciousPage() {
     });
   }, [activeType, rankingData, results, currentSortKey, sortOrder]);
 
+  const exportRiskRankingCsv = () => {
+    if (activeType !== "risk_ranking" || sortedData.length === 0) return;
+
+    const escapeCsv = (value) => {
+      const str = String(value ?? "");
+      if (/[",\n]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const headers = [
+      "rank",
+      "address",
+      "risk_score",
+      "out_degree",
+      "in_degree",
+      "cycles",
+      "dataset_id",
+    ];
+
+    const rows = sortedData.map((item, idx) => [
+      idx + 1,
+      item.address ?? "",
+      item.riskScore ?? 0,
+      item.outDegree ?? 0,
+      item.inDegree ?? 0,
+      item.cycles ?? 0,
+      selectedDatasetId || "shared",
+    ]);
+
+    const csv = [headers, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const safeDataset = String(selectedDatasetId || "shared").replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `risk-ranking-${safeDataset}-${timestamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6 lg:p-8">
       {/* Header */}
@@ -197,6 +244,17 @@ function SuspiciousPage() {
                 {sortOrder === "asc" ? "↑ Asc" : "↓ Desc"}
               </button>
             </div>
+          )}
+
+          {activeType === "risk_ranking" && sortedData.length > 0 && (
+            <button
+              onClick={exportRiskRankingCsv}
+              className="flex items-center gap-2 rounded border border-card-border bg-background px-3 py-1.5 text-xs text-muted hover:text-foreground focus:border-accent focus:outline-none"
+              title="Export current risk ranking to CSV"
+            >
+              <Download size={12} />
+              Export CSV
+            </button>
           )}
         </div>
       </div>
