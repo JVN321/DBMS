@@ -7,9 +7,9 @@ import CustomCursor from "./CustomCursor";
 // Color utilities
 // ═══════════════════════════════════════════════════════════════════════
 
-/** Risk gradient: 0 → green, 50 → yellow, 100 → red. */
-function riskColor(score) {
-  const s = Math.max(0, Math.min(100, score || 0));
+/** Risk gradient: 0 → green, 50 → yellow, 100 → red. Supports color sensitivity. */
+function riskColor(score, sensitivity = 1.0) {
+  const s = Math.max(0, Math.min(100, (score || 0) * sensitivity));
   const hue = Math.round(120 - s * 1.2);
   return `hsl(${Math.max(0, hue)}, 85%, 60%)`;
 }
@@ -238,6 +238,7 @@ export default function GraphViewer3D({
     fogDensity: vizSettings.fogDensity ?? 0.0015,
     particleSpeed: vizSettings.particleSpeed ?? 0.003,
     glowIntensity: vizSettings.glowIntensity ?? 1.0,
+    colorSensitivity: vizSettings.colorSensitivity ?? 1.0,
     particleCount: vizSettings.particleCount ?? 4,
     orbitSpeed: vizSettings.orbitSpeed ?? 0.0008,
     gravity: vizSettings.gravity ?? 0.015,
@@ -245,6 +246,7 @@ export default function GraphViewer3D({
     vizSettings.fogDensity,
     vizSettings.particleSpeed,
     vizSettings.glowIntensity,
+    vizSettings.colorSensitivity,
     vizSettings.particleCount,
     vizSettings.orbitSpeed,
     vizSettings.gravity,
@@ -327,7 +329,7 @@ export default function GraphViewer3D({
       } else if (FRAUD_COLORS[fraudPattern]) {
         color = FRAUD_COLORS[fraudPattern];
       } else {
-        color = riskColor(risk);
+        color = riskColor(risk, settings.colorSensitivity);
       }
 
       // Node size: sqrt-scaled so largest ~ 16, smallest = 3
@@ -384,7 +386,7 @@ export default function GraphViewer3D({
     }
 
     return { nodes, links };
-  }, [elements, highlightedNodes, highlightPath, volumeThreshold, clusterSizeThreshold, colorMode]);
+  }, [elements, highlightedNodes, highlightPath, volumeThreshold, clusterSizeThreshold, colorMode, settings.colorSensitivity]);
 
   // ═══════════════════════════════════════════════════════════════════
   // 3D Graph init & update
@@ -937,6 +939,7 @@ export default function GraphViewer3D({
 
   // ── Live settings updates (no full recreation) ──
   const prevGravityRef = useRef(null);
+  const prevGlowRef = useRef(settings.glowIntensity);
   useEffect(() => {
     const G = graphRef.current;
     if (!G) return;
@@ -953,6 +956,14 @@ export default function GraphViewer3D({
       try { G.d3ReheatSimulation(); } catch (_) {}
     }
     prevGravityRef.current = settings.gravity;
+
+    // Refresh nodeThreeObject when glowIntensity changes
+    if (prevGlowRef.current !== settings.glowIntensity) {
+      prevGlowRef.current = settings.glowIntensity;
+      try {
+        G.nodeThreeObject(G.nodeThreeObject());
+      } catch (_) {}
+    }
   }, [settings, reduceAnimations]);
 
   // ═══════════════════════════════════════════════════════════════════

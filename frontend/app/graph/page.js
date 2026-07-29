@@ -65,6 +65,7 @@ function GraphExplorerPage() {
     fogDensity: 0.0015,
     particleSpeed: 0.003,
     glowIntensity: 1.0,
+    colorSensitivity: 1.0,
     particleCount: 4,
     orbitSpeed: 0.0008,
     gravity: 0.015,
@@ -420,9 +421,23 @@ function GraphExplorerPage() {
                       <span className="text-[10px] font-mono text-muted">{vizSettings.glowIntensity.toFixed(1)}</span>
                     </div>
                     <input
-                      type="range" min="0" max="2" step="0.1"
+                      type="range" min="0" max="3" step="0.1"
                       value={vizSettings.glowIntensity}
                       onChange={(e) => setVizSettings(prev => ({ ...prev, glowIntensity: parseFloat(e.target.value) }))}
+                      className="mt-0.5 h-1 w-full cursor-pointer accent-accent"
+                    />
+                  </div>
+
+                  {/* Color Sensitivity */}
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-muted">Color Sensitivity</label>
+                      <span className="text-[10px] font-mono text-muted">{(vizSettings.colorSensitivity ?? 1.0).toFixed(1)}x</span>
+                    </div>
+                    <input
+                      type="range" min="0.5" max="3.0" step="0.1"
+                      value={vizSettings.colorSensitivity ?? 1.0}
+                      onChange={(e) => setVizSettings(prev => ({ ...prev, colorSensitivity: parseFloat(e.target.value) }))}
                       className="mt-0.5 h-1 w-full cursor-pointer accent-accent"
                     />
                   </div>
@@ -457,7 +472,7 @@ function GraphExplorerPage() {
 
                   {/* Reset button */}
                   <button
-                    onClick={() => setVizSettings({ fogDensity: 0.0015, particleSpeed: 0.003, glowIntensity: 1.0, particleCount: 4, orbitSpeed: 0.0008, gravity: 0.015 })}
+                    onClick={() => setVizSettings({ fogDensity: 0.0015, particleSpeed: 0.003, glowIntensity: 1.0, colorSensitivity: 1.0, particleCount: 4, orbitSpeed: 0.0008, gravity: 0.015 })}
                     className="mt-1 w-full rounded border border-card-border bg-background px-2 py-1 text-[10px] font-medium text-muted hover:text-foreground transition-colors"
                   >
                     Reset Defaults
