@@ -133,8 +133,9 @@ function GraphExplorerPage() {
   }, [fetchGraph]);
 
   const handleNodeClick = useCallback((address) => {
-    router.push(`/wallet/${encodeURIComponent(address)}`);
-  }, [router]);
+    const dsParam = selectedDatasetId ? `?dataset_id=${encodeURIComponent(selectedDatasetId)}` : '';
+    router.push(`/wallet/${encodeURIComponent(address)}${dsParam}`);
+  }, [router, selectedDatasetId]);
 
   const findPath = async () => {
     if (!pathFrom.trim() || !pathTo.trim()) return;

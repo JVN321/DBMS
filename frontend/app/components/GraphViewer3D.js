@@ -341,7 +341,8 @@ export default function GraphViewer3D({
       const node = {
         id: n.data.id,
         label: n.data.label || n.data.id,
-        nodeType: n.data.nodeType,
+        address: n.data.address || n.data.label || n.data.id,
+        nodeType: n.data.nodeType || "Wallet",
         totalVolume: totalVol,
         logVolume: logVol,
         normalizedVolume: normVol,
@@ -562,8 +563,8 @@ export default function GraphViewer3D({
 
       // ── Interaction ──
       .onNodeClick((node) => {
-        if (onNodeClickRef.current && node.nodeType === "Wallet") {
-          onNodeClickRef.current(node.label || node.id);
+        if (onNodeClickRef.current && (!node.nodeType || node.nodeType === "Wallet")) {
+          onNodeClickRef.current(node.address || node.label || node.id);
         }
       })
       .onNodeHover((node) => {
@@ -579,8 +580,8 @@ export default function GraphViewer3D({
       if (e.button !== 1) return;
       e.preventDefault();
       const node = hoveredNodeRef.current;
-      if (node && node.nodeType === "Wallet") {
-        window.open(`/wallet/${encodeURIComponent(node.label || node.id)}`, "_blank", "noopener,noreferrer");
+      if (node && (!node.nodeType || node.nodeType === "Wallet")) {
+        window.open(`/wallet/${encodeURIComponent(node.address || node.label || node.id)}`, "_blank", "noopener,noreferrer");
       }
     };
     container.addEventListener("auxclick", handleAuxClick);

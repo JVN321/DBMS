@@ -140,19 +140,23 @@ export async function detectDenseClusters(threshold = 3, limit = 20, datasetId =
 }
 
 // --- Risk Assessment ---
-export async function calculateRiskAssessment(address) {
-  const session = getSession();
+export async function calculateRiskAssessment(address, existingSession = null, datasetId = null) {
+  const session = existingSession || getSession();
+  const owned = !existingSession;
   try {
     const result = await session.run(
       `MATCH (w:Wallet {address: $address})
+       WHERE $datasetId IS NULL OR w.dataset_id = $datasetId
        OPTIONAL MATCH (w)-[out:TRANSFER]->()
+       WHERE $datasetId IS NULL OR out.dataset_id = w.dataset_id
        WITH w, count(out) AS outDeg
        OPTIONAL MATCH ()-[inr:TRANSFER]->(w)
+       WHERE $datasetId IS NULL OR inr.dataset_id = w.dataset_id
        WITH w, outDeg, count(inr) AS inDeg
        OPTIONAL MATCH path = (w)-[:TRANSFER*2..4]->(w)
        WITH w, outDeg, inDeg, count(path) AS cycles
        RETURN outDeg, inDeg, cycles`,
-      { address }
+      { address, datasetId: datasetId || null }
     );
 
     if (result.records.length === 0) return { score: 0, type: 'Normal Behavior', reasoning: ['No risk patterns detected for this address.'] };
@@ -223,7 +227,7 @@ export async function calculateRiskAssessment(address) {
       }
     };
   } finally {
-    await session.close();
+    if (owned) await session.close();
   }
 }
 
