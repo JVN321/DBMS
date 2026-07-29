@@ -18,86 +18,86 @@ export const SLIDES = [
     title: "Blockchain Transaction Graph Analysis using Neo4j",
     mainIdea: "Project Team Members (Muthoot Institute of Technology and Science):",
     bullets: [
-      "Aman Antony MUT24CA013",
-      "John Varghese Nettady MUT24CA044",
-      "Sam Sunny MUT24CA064",
-      "Sangeetha Shalom Saji MUT24CA065"
+      "Aman Antony — MUT24CA013",
+      "John Varghese Nettady — MUT24CA044",
+      "Sam Sunny — MUT24CA064",
+      "Sangeetha Shalom Saji — MUT24CA065"
     ],
     icon: Database,
   },
   {
     id: "slide2",
     navLabel: "Problem Definition",
-    kicker: "02 Context",
-    title: "Relational DBs vs NoSQL Graphs  ",
-    mainIdea: "Blockchain data spans millions of nested interactions. SQL struggles with variable deep path tracing.",
+    kicker: "02 — Why Not a Regular Database?",
+    title: "Why Normal Databases Fall Short",
+    mainIdea: "Blockchain has millions of wallet-to-wallet transfers. Traditional databases aren't built to trace these chains efficiently.",
     bullets: [
-      "Multi-Hop JOINs: RDBMS architectures exponentially decay in performance when scaling beyond 3-degree peer connections.",
-      "First-Class Entities: Graph databases natively map edges (transactions) and nodes (wallets) into index-free adjacency structures.",
-      "Real-Time Capabilities: Neo4j operates $O(1)$ edge traversal enabling immediate algorithmic fraud detection matrices."
+      "Chains of transfers: In a regular database, tracing money through 4–5 wallets requires multiple expensive joins — it gets slow very fast.",
+      "Graphs are a natural fit: A graph database stores wallets as nodes and transfers as connections, making it natural to follow any path.",
+      "Speed matters: Neo4j can jump from one wallet to the next in constant time, which means real-time fraud detection becomes possible."
     ],
     icon: Activity,
   },
   {
     id: "slide3",
-    navLabel: "Architecture Engine",
-    kicker: "03 Infrastructure",
-    title: "System Architecture Pipeline",
-    mainIdea: "High throughput data normalization pushing linear records into multi-dimensional vectors.",
+    navLabel: "System Architecture",
+    kicker: "03 — How the System Works",
+    title: "End-to-End System Pipeline",
+    mainIdea: "Data flows from a raw CSV file all the way to an interactive 3D graph in the browser — in a few steps.",
     bullets: [
-      "Parsing Layer: Normalizes precision WEI/ETH cryptographic strings via streaming CSV protocols parsing 100k+ inputs seamlessly.",
-      "Idempotent Validation: Guarantees 0% collision duplication across graph updates leveraging declarative Cypher streams.",
-      "Client Output: Serializes Neo4j nested HashMaps into flat array buffers required for clustered WebGL shader manipulation."
+      "Upload: The user uploads a CSV file of transactions. The backend reads and cleans this data.",
+      "Store: Cleaned data is written into Neo4j as a graph — wallets become nodes, transfers become edges.",
+      "Visualize: The frontend fetches the graph and renders it as an interactive 3D network in the browser."
     ],
-    code: "File Buffer -> Parser Config -> Fastify Pipeline -> Neo4j Subgraph Execution -> React Three.js Engine",
+    code: "CSV File → Backend Parser → Neo4j Graph Database → 3D Browser Visualization",
     icon: Server,
   },
   {
     id: "slide4",
-    navLabel: "Graph Schema Map",
-    kicker: "04 Data Blueprint",
-    title: "Nodes, Labels & Relations",
-    mainIdea: "Structuring chaotic ledger actions into strictly mapped network topologies.",
+    navLabel: "Graph Schema",
+    kicker: "04 — Data Structure",
+    title: "How the Data is Organised",
+    mainIdea: "We model the blockchain as a network: wallets are the dots (nodes), and each transfer between them is an arrow (edge).",
     bullets: [
-      "Entity Labels: (:Wallet), (:Coin {symbol: \x27BTC\x27 | \x27ETH\x27}), (:User)",
-      "Properties Maps: Temporal boundaries (timestamp strings), Financial payloads (lossless amount mappings), unique hashing (txid strings).",
-      "Relation Semantics: Many-to-Many directed multigraph connections meaning Wallets can hold unlimited unique :TRANSFER edges scaling perfectly."
+      "Nodes: Each wallet address is stored as a Wallet node. Each cryptocurrency (BTC, ETH) is a Coin node.",
+      "Edges: Every transaction creates a TRANSFER arrow from one wallet to another, tagged with the amount, time, and transaction ID.",
+      "Relationships: One wallet can send to many others, and receive from many others — the graph captures all of this naturally."
     ],
-    code: "(Wallet Nodes) --[:TRANSFER {txid, value, time}]--> (Wallet Nodes)\n         |\n         +----[:USES_PROTOCOL]----> (Distributed Ledger Coin)",
+    code: "(Wallet A) --[:TRANSFER {amount, time, txid}]--> (Wallet B)\n                 |\n                 +----[:USES_PROTOCOL]----> (Coin: BTC / ETH)",
     icon: Network,
   },
   {
     id: "slide5",
-    navLabel: "ACID Ingestion",
-    kicker: "05 DB Ingestion Code",
-    title: "Idempotent Cypher Pipelines",
-    mainIdea: "Advanced declarative graph modeling ensuring ACID compliance during massive parallel block syncing.",
+    navLabel: "Data Ingestion",
+    kicker: "05 — Writing Data to the Database",
+    title: "Loading Transactions Safely",
+    mainIdea: "We use Cypher (Neo4j's query language) to load thousands of transactions at once without creating duplicates.",
     bullets: [
-      "Schema Constraints: UNIQUE assertions mapped explicitly over `Wallet.address` boundaries securing data integrity limits.",
-      "Parallel Execution: Bulk transaction payloads UNWIND efficiently over single-thread cycles drastically minimizing connection/IO overhead.",
-      "No-Duplicate Guarantees: Natively handles partial retries by resolving properties purely via isolated MERGE logic parameters."
+      "Unique wallets: Before inserting, we check if a wallet already exists — if it does, we reuse it instead of creating a duplicate.",
+      "Bulk loading: Transactions are processed in batches, which is much faster than inserting them one by one.",
+      "Safe retries: If the upload fails halfway through, re-running it is safe — it won't create double entries."
     ],
     code: "UNWIND $transactions AS tx\nMERGE (from:Wallet {address: tx.wallet_from})\nMERGE (to:Wallet {address: tx.wallet_to})\nMERGE (from)-[t:TRANSFER {txid: tx.transaction_id}]->(to)",
     icon: Database,
   },
   {
     id: "slide6",
-    navLabel: "Analytical Queries",
-    kicker: "06 Deep Dive",
-    title: "Graph Detection Queries",
-    mainIdea: "Exploiting Graph Theory paths evaluating behavior normally impossible in structured SQL mapping.",
+    navLabel: "Detection Queries",
+    kicker: "06 — Finding Suspicious Patterns",
+    title: "What the System Can Detect",
+    mainIdea: "We run graph queries to automatically spot patterns that are common in money laundering and fraud.",
     bullets: [
-      "Rapid Path Iterations: Tracks A -> B -> C temporal movements directly comparing node timestamps under 60-second heuristic windows.",
-      "Density Mappings: Simultaneously executing OPTIONAL IN/OUT edge counting loops determining exact topological graph centering arrays.",
-      "Zero N+1 Query Cascade: Processes 10,000+ conditional aggregations directly on the backend engine before single serialized response delivery."
+      "Each detection type looks for a specific suspicious behaviour — circular transfers, unusual sending patterns, rapid pass-throughs, and more.",
+      "These queries run directly in Neo4j and return results in real time.",
+      "The results are then shown visually on the graph so the analyst can explore them."
     ],
     icon: Zap,
     subSlides: [
       {
         id: "ss1",
         title: "1. Circular Transfers",
-        type: "Risk type: circular",
-        description: "Finds wallets that are the start and end of a transfer chain — money that eventually loops back to its origin, a classic layering pattern.",
+        type: "Pattern: Money Looping Back",
+        description: "Finds wallets where money goes out through a chain of transfers and eventually comes back to the same wallet. This is a classic layering technique in money laundering — moving funds in circles to hide the trail.",
         code: `MATCH path = (w:Wallet)-[:TRANSFER*2..6]->(w)
 WITH w, path, length(path) AS depth
 ORDER BY depth ASC
@@ -108,9 +108,9 @@ RETURN
       },
       {
         id: "ss2",
-        title: "2. High Fan-Out",
-        type: "Risk type: fanout",
-        description: "Finds wallets that send money to an unusually large number of distinct recipients — indicative of a distribution hub, peel-chain, or automated scattering.",
+        title: "2. High Fan-Out (Scattering)",
+        type: "Pattern: One Sender → Many Recipients",
+        description: "Finds wallets that send money to a very large number of different recipients. This is suspicious because it resembles 'smurfing' — breaking up a large amount and spreading it across many smaller wallets to avoid detection.",
         code: `MATCH (w:Wallet)-[t:TRANSFER]->()
 WITH w, count(t) AS outDegree, sum(t.amount) AS totalSent
 WHERE outDegree >= toInteger($threshold)
@@ -120,9 +120,9 @@ LIMIT toInteger($limit)`
       },
       {
         id: "ss3",
-        title: "3. High Fan-In",
-        type: "Risk type: fanin",
-        description: "Finds wallets that receive from an unusually large number of distinct senders — indicative of a consolidation sink, collection address, or exchange deposit wallet.",
+        title: "3. High Fan-In (Collecting)",
+        type: "Pattern: Many Senders → One Recipient",
+        description: "Finds wallets that receive money from a very large number of different senders. This is the opposite of scattering — it looks like a collection point or aggregator, often seen in the final stage before funds are cashed out.",
         code: `MATCH ()-[t:TRANSFER]->(w:Wallet)
 WITH w, count(t) AS inDegree, sum(t.amount) AS totalReceived
 WHERE inDegree >= toInteger($threshold)
@@ -132,9 +132,9 @@ LIMIT toInteger($limit)`
       },
       {
         id: "ss4",
-        title: "4. Rapid Transfers",
-        type: "Risk type: rapid",
-        description: "Finds three-wallet chains (A → B → C) where the second transfer happens within a short time window of the first — a pattern consistent with funds quickly being passed on.",
+        title: "4. Rapid Pass-Through",
+        type: "Pattern: A → B → C in seconds",
+        description: "Finds three-wallet chains where money is passed from A to B, and then from B to C within a very short time window. This suggests B is not a real user — it's just a relay point to quickly move funds further along the chain.",
         code: `MATCH (a:Wallet)-[t1:TRANSFER]->(b:Wallet)-[t2:TRANSFER]->(c:Wallet)
 WHERE a <> c
   AND toInteger(t2.timestamp) - toInteger(t1.timestamp) >= 0
@@ -144,8 +144,8 @@ RETURN a.address AS from, b.address AS via, c.address AS to`
       {
         id: "ss5",
         title: "5. Dense Clusters",
-        type: "Risk type: cluster",
-        description: "Finds wallets that are highly connected in both directions — high in-degree and high out-degree simultaneously. These are central nodes in tight transaction clusters.",
+        type: "Pattern: Highly Connected Wallets",
+        description: "Finds wallets that both send and receive from many others — they are heavily connected in both directions. These are central hubs in a transaction cluster and are strong candidates for further investigation.",
         code: `MATCH (w:Wallet)
 OPTIONAL MATCH (w)-[out:TRANSFER]->()
 WITH w, count(out) AS outDeg
@@ -157,8 +157,8 @@ RETURN w.address AS address, outDeg, inDeg`
       {
         id: "ss6",
         title: "6. Composite Risk Score",
-        type: "Multi-factor Scoring",
-        description: "Computes a composite 0–100 risk score based on Fan-out, Fan-in, Cycle involvement, and Total degree directly inside Neo4j.",
+        type: "Scoring: 0–100 Risk Rating",
+        description: "Combines all the signals — how many it sends to, how many it receives from, and whether it's part of a loop — into a single 0 to 100 risk score. Higher score means the wallet looks more suspicious overall.",
         code: `MATCH (w:Wallet {address: $address})
 OPTIONAL MATCH (w)-[out:TRANSFER]->()
 WITH w, count(out) AS outDeg
@@ -170,65 +170,64 @@ RETURN outDeg, inDeg, cycles`
       },
       {
         id: "ss7",
-        title: "7. Client-side Community Detection",
-        type: "Algorithm: Louvain Modularity",
-        description: "Community detection runs entirely in JavaScript on the client's WebGL browser engine using Louvain modularity optimisation to colorize nodes.",
-        code: `// Iteratively moves each node to the neighbouring
-// community that produces the greatest modularity gain ΔQ
+        title: "7. Automatic Grouping (Community Detection)",
+        type: "Algorithm: Grouping Similar Wallets",
+        description: "Groups wallets that frequently interact with each other into 'communities' and colors them the same on the graph. This runs entirely in the browser and makes it easy to visually spot clusters of activity at a glance.",
+        code: `// Each wallet is assigned to the group that gives the
+// biggest improvement in overall network structure (modularity).
 logVolume = Math.log10(transaction_volume_sum + 1);
-nodes: [{id, riskScore, clusterId}] -> edges: [{link, target, weight}]`
+nodes: [{id, riskScore, clusterId}] -> edges: [{source, target, weight}]`
       }
     ]
   },
   {
     id: "slide7",
-    navLabel: "Algorithms (Frontend)",
-    kicker: "07 Client Computations",
-    title: "Community Algorithms & Scale",
-    mainIdea: "Bridging physical backend traversal logic straight into live browser mathematical configurations.",
+    navLabel: "Visualization",
+    kicker: "07 — What You See in the Browser",
+    title: "3D Graph Visualization",
+    mainIdea: "The graph isn't just a static picture — it's a live, interactive 3D network where you can explore wallets, zoom in, and click to investigate.",
     bullets: [
-      "Louvain Modularity: Dynamically assigns structural sub-graph nodes into tight programmatic rings instantly mapping money laundering behavior.",
-      "Weighted Spatial Indexing: Scales node physical dimensions and visual custom Glow intensities linearly down using a Log10 thresholding function.",
-      "Visual Whale Prevention: Restricts visual distortion ensuring $100M wallets dont geographically consume/overlap $1k laundering instances."
+      "Node size reflects volume: Wallets that have sent or received more money appear larger on screen, making big players easy to spot.",
+      "Color shows community: Wallets that interact heavily with each other share the same color, revealing clusters of related activity.",
+      "Balanced scale: We use a logarithmic scale so that very large wallets don't visually dominate and hide smaller suspicious ones."
     ],
-    code: "logVolume = Math.log10(transaction_volume_sum + 1);\nnodes: [{id, riskScore, clusterId}] -> edges: [{link, target, weight}]",
+    code: "nodeSize = Math.log10(transaction_volume + 1);\nnodes: [{id, riskScore, clusterId}] -> edges: [{source, target, weight}]",
     icon: Eye,
   },
   {
     id: "slide8",
-    navLabel: "Thread Detection",
-    kicker: "08 Security Models",
-    title: "Heuristic Threat Signatures",
-    mainIdea: "Active system engines generating automated flags identifying sophisticated malicious financial structures.",
+    navLabel: "Threat Detection",
+    kicker: "08 — Identifying Suspicious Behaviour",
+    title: "How We Spot Money Laundering",
+    mainIdea: "The system automatically flags wallets that show known money laundering patterns and gives each one a risk score.",
     bullets: [
-      "Layering (Circular Loops): Employs deep variable-length pattern matching isolating loops ranging from 2->6 hops effectively neutralizing ping-pongs.",
-      "Smurfing Distributions: Employs Fan-Out metric sweeps to highlight illegal distribution Hubs feeding thousands of sub-network wallets.",
-      "Risk Automation Algorithm: Calculates absolute system limits weighting Cycles highest (30%), scaling against aggregate In/Out density properties."
+      "Circular loops: Money that eventually returns to the starting wallet — a classic way to disguise the origin of funds.",
+      "Smurfing (scattering): One wallet splitting and sending money to hundreds of others to avoid transaction limits and detection.",
+      "Risk score formula: Combines fan-out (25%), fan-in (25%), cycles (30%), and overall connectivity (20%) into a 0–100 score."
     ],
-    code: "MATCH path = (w)-[:TRANSFER*2..6]->(w) // Deep Laundering Path Scan\nOVERALL_SCORE = Min(100, FanOut(25) + FanIn(25) + Cycles(30) + Density(20))",
+    code: "MATCH path = (w)-[:TRANSFER*2..6]->(w)  // Detect circular money loops\nRISK_SCORE = Min(100, FanOut×25 + FanIn×25 + Cycles×30 + Connectivity×20)",
     icon: ShieldAlert,
   },
   {
     id: "slide9",
-    navLabel: "Summary",
-    kicker: "09 Conclusion",
-    title: "Graph Dominance Limits",
-    mainIdea: "Network-native algorithms radically expand human visibility into structurally hidden payload behaviors.",
+    navLabel: "Conclusion",
+    kicker: "09 — What We Learned",
+    title: "Why Graph Databases Win Here",
+    mainIdea: "A graph database made it possible to do things that would be very difficult or slow with a regular database.",
     bullets: [
-      "Scale & Speed: Native indexes efficiently limit and structure operations infinitely scaling alongside expanding Distributed Ledger logs.",
-      "Cryptocurrency & Beyond: Model adapts cleanly to conventional Banking Ledgers, Corporate hierarchies, and decentralized Web3 topologies.",
-      "DBMS Efficiency: Neo4j operates smoothly tracking highly chaotic datasets resolving relationships seamlessly visually in standard UX pipelines."
+      "Speed at scale: Following chains of transfers stays fast even with millions of transactions — something traditional databases struggle with.",
+      "Wider use cases: The same approach works for banking fraud, corporate ownership trees, and any domain where connections matter.",
+      "Better insights: Relationships between wallets are first-class citizens in Neo4j, making it much easier to ask complex questions about the data."
     ],
     icon: Layers,
   },
   {
     id: "slide10",
     navLabel: "Questions",
-    kicker: "10 Finish",
-    title: "Presentation Complete",
-    mainIdea: "Thank you for listening.",
+    kicker: "10 — End",
+    title: "Thank You",
+    mainIdea: "We are happy to answer any questions.",
     bullets: [],
     icon: Lock,
   }
 ];
-
