@@ -2,6 +2,7 @@ import {
   Activity,
   Database,
   Eye,
+  Globe,
   Layers,
   Lock,
   Network,
@@ -59,7 +60,7 @@ export const SLIDES = [
     title: "How the Data is Organised",
     mainIdea: "We model the blockchain as a network: wallets are the dots (nodes), and each transfer between them is an arrow (edge).",
     bullets: [
-      "Nodes: Each wallet address is stored as a Wallet node. Each cryptocurrency (BTC, ETH) is a Coin node.",
+      "Nodes: Each wallet address is stored as a Wallet node. ",
       "Edges: Every transaction creates a TRANSFER arrow from one wallet to another, tagged with the amount, time, and transaction ID.",
       "Relationships: One wallet can send to many others, and receive from many others — the graph captures all of this naturally."
     ],
@@ -210,8 +211,21 @@ nodes: [{id, riskScore, clusterId}] -> edges: [{source, target, weight}]`
   },
   {
     id: "slide9",
+    navLabel: "SDG Alignment",
+    kicker: "09 — Sustainable Development Goals",
+    title: "Alignment with UN Sustainable Development Goals",
+    mainIdea: "Graph-based financial intelligence directly supports global sustainability by combating illicit financial flows and fostering economic integrity.",
+    bullets: [
+      "SDG 16: Peace, Justice & Strong Institutions (Target 16.4) — Significantly reduces illicit financial flows, financial crime, and money laundering across decentralized networks.",
+      "SDG 8: Decent Work & Economic Growth (Target 8.10) — Strengthens financial system integrity and trust in digital economies by ensuring transparent and secure transactions.",
+      "SDG 9: Industry, Innovation & Infrastructure — Demonstrates technological innovation by applying graph database analytics and machine intelligence to modern financial security."
+    ],
+    icon: Globe,
+  },
+  {
+    id: "slide10",
     navLabel: "Conclusion",
-    kicker: "09 — What We Learned",
+    kicker: "10 — What We Learned",
     title: "Why Graph Databases Win Here",
     mainIdea: "A graph database made it possible to do things that would be very difficult or slow with a regular database.",
     bullets: [
@@ -222,9 +236,9 @@ nodes: [{id, riskScore, clusterId}] -> edges: [{source, target, weight}]`
     icon: Layers,
   },
   {
-    id: "slide10",
+    id: "slide11",
     navLabel: "Questions",
-    kicker: "10 — End",
+    kicker: "11 — End",
     title: "Thank You",
     mainIdea: "We are happy to answer any questions.",
     bullets: [],
