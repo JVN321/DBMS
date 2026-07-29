@@ -11,7 +11,7 @@ export default function LandingPage() {
 
   return (
     <div className="relative">
-      <div className="fixed bottom-4 right-4 z-10050">
+      <div className="fixed bottom-4 right-4 z-[10000]">
         <button
           type="button"
           onClick={() => setIsPresentationMode((currentMode) => !currentMode)}

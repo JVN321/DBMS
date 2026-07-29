@@ -35,6 +35,21 @@ import { SLIDES } from "./slidesData";
 const SubSlider = ({ subSlides }) => {
   const [activeIdx, setActiveIdx] = useState(0);
 
+  useEffect(() => {
+    const handleSubKey = (e) => {
+      const tagName = e.target?.tagName;
+      if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") return;
+
+      if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        setActiveIdx((i) => Math.min(subSlides.length - 1, i + 1));
+      } else if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        setActiveIdx((i) => Math.max(0, i - 1));
+      }
+    };
+    window.addEventListener("keydown", handleSubKey);
+    return () => window.removeEventListener("keydown", handleSubKey);
+  }, [subSlides.length]);
+
   return (
     <div className="ppt-anim-item mt-6 relative overflow-hidden rounded-2xl border border-indigo-500/30 bg-black/60 p-6 backdrop-blur-xl shadow-[0_0_40px_rgba(79,70,229,0.15)] group" style={{ "--ppt-delay": "0.40s" }}>
       {/* Decorative gradient orbs */}
@@ -154,6 +169,7 @@ export default function LandingPagePresentation() {
 
       if (
         event.key === "ArrowDown" ||
+        event.key === "ArrowRight" ||
         event.key === "PageDown" ||
         (event.key === " " && !event.shiftKey)
       ) {
@@ -163,6 +179,7 @@ export default function LandingPagePresentation() {
 
       if (
         event.key === "ArrowUp" ||
+        event.key === "ArrowLeft" ||
         event.key === "PageUp" ||
         (event.key === " " && event.shiftKey)
       ) {
