@@ -223,7 +223,7 @@ export default function GraphViewer({
           node.fraudPattern !== "normal"
             ? `<div style="margin-top:2px;color:${FRAUD_COLORS[node.fraudPattern] || "#fff"};font-weight:700;">\u26a0 ${node.fraudPattern.toUpperCase()}</div>`
             : "";
-        return `<div style="background:rgba(5,8,22,0.92);color:#e4e4e7;padding:8px 12px;border-radius:8px;font-size:12px;font-family:monospace;border:1px solid #27272a;pointer-events:none;max-width:300px;">
+        return `<div style="background:rgba(0,0,0,0.95);color:#e4e4e7;padding:8px 12px;border-radius:8px;font-size:12px;font-family:monospace;border:1px solid #27272a;pointer-events:none;max-width:300px;">
           <div style="font-weight:700;margin-bottom:4px;">${addr}</div>
           <div style="color:#a1a1aa;">Volume: <span style="color:${node.color}">${vol}</span></div>
           <div style="color:#a1a1aa;">LogVol: <span style="color:#818cf8">${node.logVolume.toFixed(2)}</span></div>

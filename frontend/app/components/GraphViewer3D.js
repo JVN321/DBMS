@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
+import { ChevronRight, ChevronLeft, Copy, ExternalLink, ShieldAlert, Activity, RotateCw, Check, X } from "lucide-react";
 import CustomCursor from "./CustomCursor";
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -63,7 +64,7 @@ function hslToRgb(h, s, l) {
 // Glow texture (canvas radial gradient)
 // ═══════════════════════════════════════════════════════════════════════
 
-function createGlowTexture(color, intensity = 1, size = 128) {
+function createGlowTexture(color, intensity = 1, size = 256) {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
@@ -71,11 +72,12 @@ function createGlowTexture(color, intensity = 1, size = 128) {
   const { r, g, b } = parseColor(color);
   const cx = size / 2;
   const rad = size / 2;
-  const a = Math.min(1, 0.5 + intensity * 0.5);
+  const a = Math.min(1, 0.75 + intensity * 0.25);
   const grad = ctx.createRadialGradient(cx, cx, 0, cx, cx, rad);
-  grad.addColorStop(0, `rgba(${r},${g},${b},${a})`);
-  grad.addColorStop(0.2, `rgba(${r},${g},${b},${a * 0.75})`);
-  grad.addColorStop(0.5, `rgba(${r},${g},${b},${a * 0.25})`);
+  grad.addColorStop(0, `rgba(255,255,255,${a})`);
+  grad.addColorStop(0.18, `rgba(${r},${g},${b},${a * 0.95})`);
+  grad.addColorStop(0.42, `rgba(${r},${g},${b},${a * 0.5})`);
+  grad.addColorStop(0.72, `rgba(${r},${g},${b},${a * 0.15})`);
   grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
@@ -202,6 +204,7 @@ export default function GraphViewer3D({
   const orbitRef = useRef(null);
   const wasdFrameRef = useRef(null);
   const sceneExtrasRef = useRef([]);
+  const starfieldMeshRef = useRef(null);
   const keysRef = useRef(new Set());
   const cameraStateRef = useRef(null);
   const userInteractedRef = useRef(false);
@@ -211,11 +214,17 @@ export default function GraphViewer3D({
   const cameraVelRef = useRef({ x: 0, y: 0, z: 0 });
   const fpsRef = useRef({ frames: 0, lastTime: performance.now() });
   const readyTimeoutRef = useRef(null);
+  const autoRotateRef = useRef(false);
+
   const [fps, setFps] = useState(0);
   const [ForceGraph3DModule, setForceGraph3DModule] = useState(null);
   const [graphReady, setGraphReady] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
   const [overlayDone, setOverlayDone] = useState(false);
+  const [isAutoRotating, setIsAutoRotating] = useState(false);
+  const [hoveredNode, setHoveredNode] = useState(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   // When graph is ready, trigger the fade-out transition
   useEffect(() => {
@@ -235,13 +244,14 @@ export default function GraphViewer3D({
 
   // ── Merged visual settings with defaults ──
   const settings = useMemo(() => ({
-    fogDensity: vizSettings.fogDensity ?? 0.0015,
+    fogDensity: vizSettings.fogDensity ?? 0.0022,
     particleSpeed: vizSettings.particleSpeed ?? 0.003,
     glowIntensity: vizSettings.glowIntensity ?? 1.0,
     colorSensitivity: vizSettings.colorSensitivity ?? 1.0,
     particleCount: vizSettings.particleCount ?? 4,
     orbitSpeed: vizSettings.orbitSpeed ?? 0.0008,
     gravity: vizSettings.gravity ?? 0.015,
+    dustCount: vizSettings.dustCount ?? 4000,
   }), [
     vizSettings.fogDensity,
     vizSettings.particleSpeed,
@@ -250,6 +260,7 @@ export default function GraphViewer3D({
     vizSettings.particleCount,
     vizSettings.orbitSpeed,
     vizSettings.gravity,
+    vizSettings.dustCount,
   ]);
 
   // Dynamic import of 3d-force-graph + three
@@ -302,6 +313,15 @@ export default function GraphViewer3D({
       if (cid >= 0) rawClusterSizes.set(cid, (rawClusterSizes.get(cid) || 0) + 1);
     }
 
+    // Pre-count node connection degrees across edges
+    const degreeMap = new Map();
+    for (const e of elements.edges || []) {
+      const src = e.data?.source;
+      const tgt = e.data?.target;
+      if (src) degreeMap.set(src, (degreeMap.get(src) || 0) + 1);
+      if (tgt) degreeMap.set(tgt, (degreeMap.get(tgt) || 0) + 1);
+    }
+
     for (const n of elements.nodes || []) {
       const normVol = parseFloat(n.data?.normalizedVolume ?? 0);
       const totalVol = parseFloat(n.data?.totalVolume ?? n.data?.value_lossless ?? 0);
@@ -309,6 +329,7 @@ export default function GraphViewer3D({
       const risk = n.data?.riskScore || 0;
       const clusterId = n.data?.clusterId ?? -1;
       const fraudPattern = n.data?.fraudPattern || "normal";
+      const degree = degreeMap.get(n.data.id) || 0;
 
       if (volumeThreshold > 0 && normVol < volumeThreshold) continue;
       if (clusterSizeThreshold > 0 && clusterId >= 0 && (rawClusterSizes.get(clusterId) || 0) < clusterSizeThreshold) continue;
@@ -354,6 +375,7 @@ export default function GraphViewer3D({
         isOnPath,
         fzTarget,
         nodeSize,
+        degree,
         glowIntensity: normVol,
       };
       nodes.push(node);
@@ -457,20 +479,20 @@ export default function GraphViewer3D({
         const { r, g, b } = parseColor(node.color);
         const col = new T.Color(r / 255, g / 255, b / 255);
 
-        const geo = new T.SphereGeometry(s * 0.5, 16, 16);
+        const geo = new T.SphereGeometry(s * 0.5, 20, 20);
         const mat = new T.MeshStandardMaterial({
           color: col,
           emissive: col,
-          emissiveIntensity: 0.75,
-          roughness: 0.3,
-          metalness: 0.2,
+          emissiveIntensity: 1.2,
+          roughness: 0.15,
+          metalness: 0.3,
           transparent: true,
-          opacity: 0.92,
+          opacity: 0.95,
         });
         const sphere = new T.Mesh(geo, mat);
 
         if (!_reduceAnim && settingsRef.current.glowIntensity > 0) {
-          const glowScale = 1 + node.normalizedVolume * 3 * settingsRef.current.glowIntensity;
+          const glowScale = 1 + node.normalizedVolume * 2.8 * settingsRef.current.glowIntensity;
           const canvas = createGlowTexture(
             node.color,
             node.glowIntensity * settingsRef.current.glowIntensity
@@ -483,7 +505,7 @@ export default function GraphViewer3D({
             depthWrite: false,
           });
           const sprite = new T.Sprite(spriteMat);
-          sprite.scale.set(s * 2.2 * glowScale, s * 2.2 * glowScale, 1);
+          sprite.scale.set(s * 3.4 * glowScale, s * 3.4 * glowScale, 1);
 
           const group = new T.Group();
           group.add(sphere);
@@ -505,7 +527,7 @@ export default function GraphViewer3D({
         const patternBadge = node.fraudPattern !== "normal"
           ? `<div style="margin-top:2px;color:${FRAUD_COLORS[node.fraudPattern] || "#fff"};font-weight:700;">\u26a0 ${node.fraudPattern.toUpperCase()}</div>`
           : "";
-        return `<div style="background:rgba(5,8,22,0.92);color:#e4e4e7;padding:8px 12px;border-radius:8px;font-size:12px;font-family:monospace;border:1px solid #27272a;pointer-events:none;max-width:300px;">
+        return `<div style="background:rgba(0,0,0,0.95);color:#e4e4e7;padding:8px 12px;border-radius:8px;font-size:12px;font-family:monospace;border:1px solid #27272a;pointer-events:none;max-width:300px;">
           <div style="font-weight:700;margin-bottom:4px;">${addr}</div>
           <div style="color:#a1a1aa;">Volume: <span style="color:${node.color}">${vol}</span></div>
           <div style="color:#a1a1aa;">LogVol: <span style="color:#818cf8">${node.logVolume.toFixed(2)}</span></div>
@@ -533,7 +555,7 @@ export default function GraphViewer3D({
         const pathBadge = link.isPathEdge
           ? `<div style="margin-top:4px;color:#f59e0b;font-weight:700;">&#9654; Path edge</div>`
           : "";
-        return `<div style="background:rgba(5,8,22,0.92);color:#e4e4e7;padding:8px 12px;border-radius:8px;font-size:12px;font-family:monospace;border:1px solid #27272a;pointer-events:none;max-width:320px;">
+        return `<div style="background:rgba(0,0,0,0.95);color:#e4e4e7;padding:8px 12px;border-radius:8px;font-size:12px;font-family:monospace;border:1px solid #27272a;pointer-events:none;max-width:320px;">
           <div style="font-weight:700;margin-bottom:4px;color:#818cf8;">&#8594; Transfer</div>
           <div style="color:#a1a1aa;">From: <span style="color:#e4e4e7">${shortSrc}</span></div>
           <div style="color:#a1a1aa;">To: &nbsp;&nbsp;<span style="color:#e4e4e7">${shortTgt}</span></div>
@@ -569,6 +591,7 @@ export default function GraphViewer3D({
       })
       .onNodeHover((node) => {
         hoveredNodeRef.current = node || null;
+        setHoveredNode(node || null);
         window.dispatchEvent(
           new CustomEvent("graph-node-hover", { detail: { node: node || null } })
         );
@@ -745,9 +768,20 @@ export default function GraphViewer3D({
       const fogDensity = _reduceAnim ? 0 : settingsRef.current.fogDensity;
       scene.fog = fogDensity > 0 ? new T.FogExp2(0x050816, fogDensity) : null;
 
-      const stars = createStarfield(T, 4000, 2000);
-      scene.add(stars);
-      sceneExtrasRef.current.push(stars);
+      if (starfieldMeshRef.current) {
+        scene.remove(starfieldMeshRef.current);
+        starfieldMeshRef.current.geometry?.dispose();
+        starfieldMeshRef.current.material?.dispose();
+        starfieldMeshRef.current = null;
+      }
+
+      const dustCount = settingsRef.current.dustCount ?? 4000;
+      if (dustCount > 0) {
+        const stars = createStarfield(T, dustCount, 2000);
+        scene.add(stars);
+        starfieldMeshRef.current = stars;
+        sceneExtrasRef.current.push(stars);
+      }
     }, 100);
 
     // ── Restore or set initial camera position ──
@@ -767,6 +801,16 @@ export default function GraphViewer3D({
 
     graphRef.current = Graph;
 
+    // ── Helper to check if event target is an editable input ──
+    const isTargetEditable = (target) => {
+      if (!target) return false;
+      const tag = target.tagName ? target.tagName.toUpperCase() : "";
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(tag)) return true;
+      if (target.isContentEditable) return true;
+      if (target.closest && target.closest("input, textarea, select, [contenteditable='true']")) return true;
+      return false;
+    };
+
     // ── User interaction tracking ──
     const onInteract = () => { userInteractedRef.current = true; };
     container.addEventListener("pointerdown", onInteract);
@@ -774,6 +818,7 @@ export default function GraphViewer3D({
 
     // ── Ctrl key → enable node drag ──
     const onCtrlDown = (e) => {
+      if (isTargetEditable(e.target)) return;
       if (e.key === "Control") {
         graphRef.current?.enableNodeDrag(true);
         container.style.cursor = "grab";
@@ -788,20 +833,59 @@ export default function GraphViewer3D({
     window.addEventListener("keydown", onCtrlDown);
     window.addEventListener("keyup", onCtrlUp);
 
+    // ── Clear keys & drag state on window blur to prevent stuck WASD drift ──
+    const onWindowBlur = () => {
+      keysRef.current.clear();
+      graphRef.current?.enableNodeDrag(false);
+      if (container) container.style.cursor = "default";
+    };
+    window.addEventListener("blur", onWindowBlur);
+
     // ── WASD spaceship-style controls (momentum + drift) ──
     const THRUST = 0.6;
     const SHIFT_MULTIPLIER = 3;
     const FRICTION = 0.97;  // how fast velocity decays (1 = no friction)
 
     const onKeyDown = (e) => {
+      if (isTargetEditable(e.target)) return;
+
+      // Escape key: close panel / cancel focus
+      if (e.key === "Escape") {
+        setIsPanelOpen(false);
+        setHoveredNode(null);
+        hoveredNodeRef.current = null;
+        return;
+      }
+
+      // Intercept Ctrl + D (or Cmd + D) for autorotation at FIXED camera radius
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        e.stopPropagation();
+        const nextState = !autoRotateRef.current;
+        autoRotateRef.current = nextState;
+        setIsAutoRotating(nextState);
+
+        if (graphRef.current) {
+          try {
+            const controls = graphRef.current.controls?.();
+            if (controls) {
+              controls.autoRotate = nextState;
+              controls.autoRotateSpeed = (settingsRef.current?.orbitSpeed || 0.0008) * 2500;
+            }
+          } catch (_) {}
+        }
+        return;
+      }
+
       const key = e.key.toLowerCase();
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
       if (["w", "a", "s", "d", "q", "e", " ", "shift"].includes(key)) {
+        if (key === "d" && (e.ctrlKey || e.metaKey)) return;
         keysRef.current.add(key);
         if (key === " ") e.preventDefault();
       }
     };
     const onKeyUp = (e) => {
+      if (isTargetEditable(e.target)) return;
       keysRef.current.delete(e.key.toLowerCase());
     };
     window.addEventListener("keydown", onKeyDown);
@@ -896,6 +980,7 @@ export default function GraphViewer3D({
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("keydown", onCtrlDown);
       window.removeEventListener("keyup", onCtrlUp);
+      window.removeEventListener("blur", onWindowBlur);
       keysSet.clear();
       container.removeEventListener("pointerdown", onInteract);
       container.removeEventListener("wheel", onInteract);
@@ -941,16 +1026,37 @@ export default function GraphViewer3D({
   // ── Live settings updates (no full recreation) ──
   const prevGravityRef = useRef(null);
   const prevGlowRef = useRef(settings.glowIntensity);
+  const prevDustRef = useRef(settings.dustCount);
   useEffect(() => {
     const G = graphRef.current;
     if (!G) return;
     G.linkDirectionalParticles(reduceAnimations ? 0 : settings.particleCount);
     G.linkDirectionalParticleSpeed(settings.particleSpeed);
+
+    if (G.controls?.()) {
+      G.controls().autoRotateSpeed = (settings.orbitSpeed || 0.0008) * 2500;
+    }
+
     const scene = G.scene?.();
     if (scene && window.__THREE__) {
       const T = window.__THREE__;
       const fogDensity = reduceAnimations ? 0 : settings.fogDensity;
       scene.fog = fogDensity > 0 ? new T.FogExp2(0x050816, fogDensity) : null;
+
+      if (prevDustRef.current !== settings.dustCount) {
+        prevDustRef.current = settings.dustCount;
+        if (starfieldMeshRef.current) {
+          scene.remove(starfieldMeshRef.current);
+          starfieldMeshRef.current.geometry?.dispose();
+          starfieldMeshRef.current.material?.dispose();
+          starfieldMeshRef.current = null;
+        }
+        if (settings.dustCount > 0) {
+          const stars = createStarfield(T, settings.dustCount, 2000);
+          scene.add(stars);
+          starfieldMeshRef.current = stars;
+        }
+      }
     }
     // Reheat the simulation when gravity changes so the force has ticks to run
     if (prevGravityRef.current !== null && prevGravityRef.current !== settings.gravity) {
@@ -988,6 +1094,210 @@ export default function GraphViewer3D({
         style={{ width: "100%", height: "100%" }}
         tabIndex={0}
       />
+
+      {/* ── Auto-Rotate Active Banner ── */}
+      {isAutoRotating && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full border border-indigo-500/40 bg-black/85 px-4 py-1.5 backdrop-blur-md shadow-2xl text-xs font-mono text-indigo-300">
+          <RotateCw size={13} className="animate-spin text-indigo-400" />
+          <span>Auto-Rotating Graph</span>
+          <span className="text-[10px] text-muted">(Ctrl+D to toggle)</span>
+          <button
+            onClick={() => {
+              autoRotateRef.current = false;
+              setIsAutoRotating(false);
+              if (graphRef.current?.controls?.()) {
+                graphRef.current.controls().autoRotate = false;
+              }
+            }}
+            className="ml-1 rounded bg-white/10 p-0.5 hover:bg-white/20 text-foreground transition-colors"
+            title="Pause Rotation"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Collapsible Right-Side Node Inspector Preview Panel ── */}
+      <div className="absolute top-3 right-3 z-30 flex flex-col items-end">
+        {!isPanelOpen ? (
+          <button
+            onClick={() => setIsPanelOpen(true)}
+            className="flex items-center gap-2 rounded-xl border border-card-border bg-black/90 px-3.5 py-2 text-xs font-medium text-foreground shadow-2xl backdrop-blur-md hover:border-accent hover:text-white transition-all"
+          >
+            <Activity size={14} className="text-accent animate-pulse" />
+            <span>Node Inspector</span>
+            <ChevronLeft size={14} className="text-muted" />
+          </button>
+        ) : (
+          <div className="w-80 rounded-xl border border-card-border bg-black/90 p-4 shadow-2xl backdrop-blur-md flex flex-col gap-3.5 transition-all text-foreground">
+            {/* Panel Header */}
+            <div className="flex items-center justify-between border-b border-card-border/80 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="rounded-lg bg-accent/15 p-1.5 text-accent">
+                  <ShieldAlert size={16} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold tracking-tight text-foreground uppercase">Node Inspector</h3>
+                  <p className="text-[10px] text-muted">
+                    {hoveredNode ? "Live Hover Preview" : "Hover over a node"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPanelOpen(false)}
+                className="rounded-md p-1 text-muted hover:bg-white/10 hover:text-foreground transition-colors"
+                title="Collapse Panel"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Hovered Node Details */}
+            {hoveredNode ? (
+              <div className="flex flex-col gap-3 text-xs">
+                {/* Address & Copy/Inspect Actions */}
+                <div className="rounded-lg border border-card-border/60 bg-white/[0.03] p-2.5">
+                  <div className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Node Identifier</span>
+                    <span className="font-mono text-[9px] text-accent font-semibold">{hoveredNode.nodeType || "Wallet"}</span>
+                  </div>
+                  <div className="font-mono text-xs font-semibold text-foreground break-all tracking-tight">
+                    {hoveredNode.label || hoveredNode.address || hoveredNode.id}
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(hoveredNode.address || hoveredNode.label || hoveredNode.id);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 1500);
+                      }}
+                      className="flex items-center gap-1 rounded border border-card-border bg-background px-2 py-1 text-[10px] font-mono text-muted hover:text-foreground hover:border-accent transition-colors"
+                    >
+                      {copied ? <Check size={10} className="text-green-400" /> : <Copy size={10} />}
+                      <span>{copied ? "Copied" : "Copy Address"}</span>
+                    </button>
+                    {(!hoveredNode.nodeType || hoveredNode.nodeType === "Wallet") && (
+                      <a
+                        href={`/wallet/${encodeURIComponent(hoveredNode.address || hoveredNode.label || hoveredNode.id)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 rounded bg-accent/20 border border-accent/40 px-2 py-1 text-[10px] font-mono text-accent hover:bg-accent hover:text-white transition-all"
+                      >
+                        <ExternalLink size={10} />
+                        <span>Inspect Wallet</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Risk Score Meter */}
+                <div className="rounded-lg border border-card-border/60 bg-white/[0.03] p-2.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">Risk Factor</span>
+                    <span
+                      className="font-mono font-bold text-xs px-2 py-0.5 rounded"
+                      style={{
+                        color: riskColor(hoveredNode.riskScore),
+                        backgroundColor: `${riskColor(hoveredNode.riskScore)}15`,
+                        border: `1px solid ${riskColor(hoveredNode.riskScore)}40`
+                      }}
+                    >
+                      {hoveredNode.riskScore || 0} / 100
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-card-border/60 overflow-hidden">
+                    <div
+                      className="h-full transition-all duration-300 rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, hoveredNode.riskScore || 0))}%`,
+                        background: riskGradient
+                      }}
+                    />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[9px] text-muted font-mono">
+                    <span>Low (0)</span>
+                    <span>Medium (50)</span>
+                    <span>Critical (100)</span>
+                  </div>
+                </div>
+
+                {/* Fraud Pattern Badge */}
+                {hoveredNode.fraudPattern && hoveredNode.fraudPattern !== "normal" && (
+                  <div
+                    className="flex items-center gap-2 rounded-lg p-2.5 border"
+                    style={{
+                      borderColor: FRAUD_COLORS[hoveredNode.fraudPattern] || "#ef4444",
+                      backgroundColor: `${FRAUD_COLORS[hoveredNode.fraudPattern] || "#ef4444"}15`
+                    }}
+                  >
+                    <ShieldAlert size={16} style={{ color: FRAUD_COLORS[hoveredNode.fraudPattern] }} />
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: FRAUD_COLORS[hoveredNode.fraudPattern] }}>
+                        Fraud Pattern Detected
+                      </div>
+                      <div className="text-xs font-mono font-semibold text-foreground">
+                        {hoveredNode.fraudPattern.toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Metrics Grid */}
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="rounded-lg border border-card-border/60 bg-white/[0.03] p-2">
+                    <div className="text-[9px] text-muted font-semibold uppercase">Total Volume</div>
+                    <div className="font-mono font-bold text-foreground mt-0.5 truncate">
+                      {hoveredNode.totalVolume > 1e15
+                        ? (hoveredNode.totalVolume / 1e18).toFixed(4) + " ETH"
+                        : (hoveredNode.totalVolume || 0).toLocaleString() + " Wei"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-card-border/60 bg-white/[0.03] p-2">
+                    <div className="text-[9px] text-muted font-semibold uppercase">Log Volume</div>
+                    <div className="font-mono font-bold text-indigo-400 mt-0.5">
+                      {hoveredNode.logVolume?.toFixed(2) ?? "0.00"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-card-border/60 bg-white/[0.03] p-2">
+                    <div className="text-[9px] text-muted font-semibold uppercase">Community</div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span
+                        className="h-2 w-2 rounded-full flex-shrink-0"
+                        style={{ background: clusterColor(hoveredNode.clusterId) }}
+                      />
+                      <span className="font-mono font-bold text-foreground">
+                        #{hoveredNode.clusterId ?? "N/A"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-card-border/60 bg-white/[0.03] p-2">
+                    <div className="text-[9px] text-muted font-semibold uppercase">Connections</div>
+                    <div className="font-mono font-bold text-amber-400 mt-0.5">
+                      {hoveredNode.degree ?? 0} edges
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Empty State */
+              <div className="flex flex-col items-center justify-center py-6 px-3 text-center border border-dashed border-card-border/80 rounded-lg bg-white/[0.01]">
+                <div className="relative mb-2">
+                  <div className="h-10 w-10 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-accent">
+                    <Activity size={20} />
+                  </div>
+                </div>
+                <p className="text-xs font-semibold text-foreground">No Node Hovered</p>
+                <p className="text-[10px] text-muted leading-relaxed mt-1 max-w-[200px]">
+                  Hover over any node in the graph to preview risk metrics, cluster data & transaction history.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ── Fakeload overlay ─────────────────────────────────────────
            Phase 1 (!graphReady && !fadeOut):

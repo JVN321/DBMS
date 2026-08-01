@@ -62,13 +62,14 @@ function GraphExplorerPage() {
   const [reduceAnimations, setReduceAnimations] = useState(false);
   const [showVizSettings, setShowVizSettings] = useState(false);
   const [vizSettings, setVizSettings] = useState({
-    fogDensity: 0.0015,
+    fogDensity: 0.0022,
     particleSpeed: 0.003,
     glowIntensity: 1.0,
     colorSensitivity: 1.0,
     particleCount: 4,
     orbitSpeed: 0.0008,
     gravity: 0.015,
+    dustCount: 4000,
   });
 
   // URL-derived focus node (camera flies to this address on load)
@@ -245,14 +246,26 @@ function GraphExplorerPage() {
                 className="min-w-20 flex-1 bg-transparent py-0.5 text-xs focus:outline-none"
               />
             </div>
-            <input
-              type="number"
-              min={10}
-              max={1000}
-              value={nodeLimit}
-              onChange={(e) => setNodeLimit(parseInt(e.target.value) || 200)}
-              className="w-16 rounded border border-card-border bg-background px-2 py-1 text-xs focus:border-accent focus:outline-none"
-            />
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-medium text-muted uppercase tracking-wider">Nodes:</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={nodeLimit}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9]/g, "");
+                  setNodeLimit(val === "" ? "" : Math.min(2000, parseInt(val, 10)));
+                }}
+                onBlur={() => {
+                  if (!nodeLimit || parseInt(nodeLimit, 10) < 1) {
+                    setNodeLimit(200);
+                  }
+                }}
+                className="w-16 rounded border border-card-border bg-background px-2 py-1 text-center font-mono text-xs text-foreground focus:border-accent focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                placeholder="200"
+              />
+            </div>
             <button
               onClick={() => {
                 setAppliedNodeLimit(nodeLimit);
@@ -471,9 +484,23 @@ function GraphExplorerPage() {
                     />
                   </div>
 
+                  {/* Dust Particles */}
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-muted">Dust Particles</label>
+                      <span className="text-[10px] font-mono text-muted">{vizSettings.dustCount ?? 4000}</span>
+                    </div>
+                    <input
+                      type="range" min="0" max="10000" step="500"
+                      value={vizSettings.dustCount ?? 4000}
+                      onChange={(e) => setVizSettings(prev => ({ ...prev, dustCount: parseInt(e.target.value, 10) || 0 }))}
+                      className="mt-0.5 h-1 w-full cursor-pointer accent-accent"
+                    />
+                  </div>
+
                   {/* Reset button */}
                   <button
-                    onClick={() => setVizSettings({ fogDensity: 0.0015, particleSpeed: 0.003, glowIntensity: 1.0, colorSensitivity: 1.0, particleCount: 4, orbitSpeed: 0.0008, gravity: 0.015 })}
+                    onClick={() => setVizSettings({ fogDensity: 0.0022, particleSpeed: 0.003, glowIntensity: 1.0, colorSensitivity: 1.0, particleCount: 4, orbitSpeed: 0.0008, gravity: 0.015, dustCount: 4000 })}
                     className="mt-1 w-full rounded border border-card-border bg-background px-2 py-1 text-[10px] font-medium text-muted hover:text-foreground transition-colors"
                   >
                     Reset Defaults
