@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const URI = process.env.NEO4J_URI || 'bolt://localhost:7687';
-const USER = process.env.NEO4J_USER || 'neo4j';
+const USER = process.env.NEO4J_USER || process.env.NEO4J_USERNAME || 'neo4j';
 const PASSWORD = process.env.NEO4J_PASSWORD || 'neo4j';
 const DATABASE = process.env.NEO4J_DATABASE || 'neo4j';
 
