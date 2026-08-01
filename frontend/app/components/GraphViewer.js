@@ -102,7 +102,8 @@ export default function GraphViewer({
       const node = {
         id: n.data.id,
         label: n.data.label || n.data.id,
-        nodeType: n.data.nodeType,
+        address: n.data.address || n.data.label || n.data.id,
+        nodeType: n.data.nodeType || "Wallet",
         totalVolume: totalVol,
         logVolume: logVol,
         riskScore: risk,
@@ -294,8 +295,8 @@ export default function GraphViewer({
 
       // ── Interaction ──
       .onNodeClick((node) => {
-        if (onNodeClick && node.nodeType === "Wallet") {
-          onNodeClick(node.label || node.id);
+        if (onNodeClick && (!node.nodeType || node.nodeType === "Wallet")) {
+          onNodeClick(node.address || node.label || node.id);
         }
       })
       .onNodeHover((node) => {
@@ -321,8 +322,8 @@ export default function GraphViewer({
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < minDist) { minDist = dist; closest = n; }
       }
-      if (closest && closest.nodeType === "Wallet" && minDist < (closest.nodeSize || 5) * 3) {
-        window.open(`/wallet/${encodeURIComponent(closest.label || closest.id)}`, "_blank", "noopener,noreferrer");
+      if (closest && (!closest.nodeType || closest.nodeType === "Wallet") && minDist < (closest.nodeSize || 5) * 3) {
+        window.open(`/wallet/${encodeURIComponent(closest.address || closest.label || closest.id)}`, "_blank", "noopener,noreferrer");
       }
     };
     container.addEventListener("auxclick", handleAuxClick);

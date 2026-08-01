@@ -7,9 +7,9 @@ import CustomCursor from "./CustomCursor";
 // Color utilities
 // ═══════════════════════════════════════════════════════════════════════
 
-/** Risk gradient: 0 → green, 50 → yellow, 100 → red. */
-function riskColor(score) {
-  const s = Math.max(0, Math.min(100, score || 0));
+/** Risk gradient: 0 → green, 50 → yellow, 100 → red. Supports color sensitivity. */
+function riskColor(score, sensitivity = 1.0) {
+  const s = Math.max(0, Math.min(100, (score || 0) * sensitivity));
   const hue = Math.round(120 - s * 1.2);
   return `hsl(${Math.max(0, hue)}, 85%, 60%)`;
 }
@@ -238,6 +238,7 @@ export default function GraphViewer3D({
     fogDensity: vizSettings.fogDensity ?? 0.0015,
     particleSpeed: vizSettings.particleSpeed ?? 0.003,
     glowIntensity: vizSettings.glowIntensity ?? 1.0,
+    colorSensitivity: vizSettings.colorSensitivity ?? 1.0,
     particleCount: vizSettings.particleCount ?? 4,
     orbitSpeed: vizSettings.orbitSpeed ?? 0.0008,
     gravity: vizSettings.gravity ?? 0.015,
@@ -245,6 +246,7 @@ export default function GraphViewer3D({
     vizSettings.fogDensity,
     vizSettings.particleSpeed,
     vizSettings.glowIntensity,
+    vizSettings.colorSensitivity,
     vizSettings.particleCount,
     vizSettings.orbitSpeed,
     vizSettings.gravity,
@@ -327,7 +329,7 @@ export default function GraphViewer3D({
       } else if (FRAUD_COLORS[fraudPattern]) {
         color = FRAUD_COLORS[fraudPattern];
       } else {
-        color = riskColor(risk);
+        color = riskColor(risk, settings.colorSensitivity);
       }
 
       // Node size: sqrt-scaled so largest ~ 16, smallest = 3
@@ -339,7 +341,8 @@ export default function GraphViewer3D({
       const node = {
         id: n.data.id,
         label: n.data.label || n.data.id,
-        nodeType: n.data.nodeType,
+        address: n.data.address || n.data.label || n.data.id,
+        nodeType: n.data.nodeType || "Wallet",
         totalVolume: totalVol,
         logVolume: logVol,
         normalizedVolume: normVol,
@@ -384,7 +387,7 @@ export default function GraphViewer3D({
     }
 
     return { nodes, links };
-  }, [elements, highlightedNodes, highlightPath, volumeThreshold, clusterSizeThreshold, colorMode]);
+  }, [elements, highlightedNodes, highlightPath, volumeThreshold, clusterSizeThreshold, colorMode, settings.colorSensitivity]);
 
   // ═══════════════════════════════════════════════════════════════════
   // 3D Graph init & update
@@ -560,8 +563,8 @@ export default function GraphViewer3D({
 
       // ── Interaction ──
       .onNodeClick((node) => {
-        if (onNodeClickRef.current && node.nodeType === "Wallet") {
-          onNodeClickRef.current(node.label || node.id);
+        if (onNodeClickRef.current && (!node.nodeType || node.nodeType === "Wallet")) {
+          onNodeClickRef.current(node.address || node.label || node.id);
         }
       })
       .onNodeHover((node) => {
@@ -577,8 +580,8 @@ export default function GraphViewer3D({
       if (e.button !== 1) return;
       e.preventDefault();
       const node = hoveredNodeRef.current;
-      if (node && node.nodeType === "Wallet") {
-        window.open(`/wallet/${encodeURIComponent(node.label || node.id)}`, "_blank", "noopener,noreferrer");
+      if (node && (!node.nodeType || node.nodeType === "Wallet")) {
+        window.open(`/wallet/${encodeURIComponent(node.address || node.label || node.id)}`, "_blank", "noopener,noreferrer");
       }
     };
     container.addEventListener("auxclick", handleAuxClick);
@@ -937,6 +940,7 @@ export default function GraphViewer3D({
 
   // ── Live settings updates (no full recreation) ──
   const prevGravityRef = useRef(null);
+  const prevGlowRef = useRef(settings.glowIntensity);
   useEffect(() => {
     const G = graphRef.current;
     if (!G) return;
@@ -953,6 +957,14 @@ export default function GraphViewer3D({
       try { G.d3ReheatSimulation(); } catch (_) {}
     }
     prevGravityRef.current = settings.gravity;
+
+    // Refresh nodeThreeObject when glowIntensity changes
+    if (prevGlowRef.current !== settings.glowIntensity) {
+      prevGlowRef.current = settings.glowIntensity;
+      try {
+        G.nodeThreeObject(G.nodeThreeObject());
+      } catch (_) {}
+    }
   }, [settings, reduceAnimations]);
 
   // ═══════════════════════════════════════════════════════════════════

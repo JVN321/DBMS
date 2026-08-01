@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   ArrowUpRight,
@@ -22,6 +22,7 @@ import {
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { getWallet, getGraph } from "@/lib/api";
 import { withAuth } from "@/lib/withAuth";
+import { useAuth } from "@/lib/authContext";
 
 // Dynamic import — force-graph uses canvas/D3 APIs not available server-side
 const GraphViewer = dynamic(() => import("../../components/GraphViewer"), {
@@ -50,6 +51,10 @@ function WalletDetailPage({ params }) {
   const { address } = use(params);
   const decodedAddress = decodeURIComponent(address);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { selectedDatasetId } = useAuth();
+  const datasetId = searchParams?.get('dataset_id') || selectedDatasetId || undefined;
+
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -71,8 +76,8 @@ function WalletDetailPage({ params }) {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      getWallet(decodedAddress, { skip: page * pageSize, limit: pageSize }),
-      getGraph({ address: decodedAddress, limit: 50 }),
+      getWallet(decodedAddress, { skip: page * pageSize, limit: pageSize, datasetId }),
+      getGraph({ address: decodedAddress, limit: 50, datasetId }),
     ])
       .then(([walletData, graphData]) => {
         setWallet(walletData);
@@ -80,7 +85,7 @@ function WalletDetailPage({ params }) {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [decodedAddress, page]);
+  }, [decodedAddress, page, datasetId]);
 
   if (loading) {
     return (
@@ -205,7 +210,7 @@ function WalletDetailPage({ params }) {
               <GraphViewer3D
                 elements={graphElements}
                 onNodeClick={(addr) =>
-                  router.push(`/wallet/${encodeURIComponent(addr)}`)
+                  router.push(`/wallet/${encodeURIComponent(addr)}${datasetId ? `?dataset_id=${encodeURIComponent(datasetId)}` : ''}`)
                 }
                 highlightedNodes={highlightedNodesArray}
                 focusNodeId={decodedAddress}
@@ -215,7 +220,7 @@ function WalletDetailPage({ params }) {
               <GraphViewer
                 elements={graphElements}
                 onNodeClick={(addr) =>
-                  router.push(`/wallet/${encodeURIComponent(addr)}`)
+                  router.push(`/wallet/${encodeURIComponent(addr)}${datasetId ? `?dataset_id=${encodeURIComponent(datasetId)}` : ''}`)
                 }
                 highlightedNodes={highlightedNodesArray}
                 style={{ height: "350px" }}

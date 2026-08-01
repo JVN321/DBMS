@@ -64,6 +64,7 @@ function addNode(node, nodesMap) {
     data: {
       id,
       label: props.address || props.name || id,
+      address: props.address || props.name || id,
       nodeType: label,
       ...props,
     },

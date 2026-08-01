@@ -142,9 +142,11 @@ export async function getStats() {
   return cached('stats', () => request('/stats'), TTL_STATS);
 }
 
-export async function getWallet(address, { skip = 0, limit = 50 } = {}) {
-  const key = `wallet:${address}:${skip}:${limit}`;
-  return cached(key, () => request(`/wallet/${encodeURIComponent(address)}?skip=${skip}&limit=${limit}`), TTL_WALLET);
+export async function getWallet(address, { skip = 0, limit = 50, datasetId } = {}) {
+  const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
+  if (datasetId) params.set('dataset_id', datasetId);
+  const key = `wallet:${address}:${datasetId || 'all'}:${skip}:${limit}`;
+  return cached(key, () => request(`/wallet/${encodeURIComponent(address)}?${params.toString()}`), TTL_WALLET);
 }
 
 export async function getTransactionPath(from, to) {
